@@ -217,6 +217,31 @@ textarea{resize:vertical;min-height:80px;}
 .cell-num{text-align:right;}
 input[type=date]{color-scheme:dark;}
 
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg-dark);z-index:9999;display:none;align-items:center;justify-content:center;}
+.login-box{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:24px;padding:48px 40px;width:100%;max-width:400px;display:flex;flex-direction:column;gap:24px;}
+.login-logo{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;background:linear-gradient(135deg,#fff,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;line-height:1.2;}
+.login-tagline{font-size:11px;color:var(--text-muted);text-align:center;letter-spacing:1px;text-transform:uppercase;margin-top:-16px;}
+.login-box form{display:flex;flex-direction:column;gap:14px;}
+.login-box input{background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--text-primary);font-family:inherit;width:100%;}
+.login-box input:focus{outline:none;border-color:var(--violet);}
+.login-btn{background:var(--violet);border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;font-family:inherit;transition:.2s;width:100%;}
+.login-btn:hover{background:var(--violet-deep);}
+.login-error{font-size:12px;color:var(--danger);text-align:center;min-height:18px;}
+.login-divider{height:1px;background:var(--border-dim);}
+.login-register{font-size:12px;color:var(--text-muted);text-align:center;cursor:pointer;}
+.login-register span{color:var(--violet);cursor:pointer;}
+.login-register span:hover{text-decoration:underline;}
+
+/* SIDEBAR USER */
+.sidebar-user{padding:12px 10px;border-bottom:1px solid var(--border-dim);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.sidebar-user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--violet-deep));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;}
+.sidebar-user-info{flex:1;min-width:0;}
+.sidebar-user-name{font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user-role{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;}
+.sidebar-user-logout{font-size:18px;cursor:pointer;color:var(--text-muted);transition:.2s;flex-shrink:0;}
+.sidebar-user-logout:hover{color:var(--danger);}
+
 /* MISC */
 .divider{height:1px;background:var(--border-dim);margin:28px 0;}
 .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);font-size:14px;}
@@ -228,6 +253,30 @@ input[type=date]{color-scheme:dark;}
 </style>
 </head>
 <body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CLUTCH<br>REELS</div>
+    <div class="login-tagline">agencia de contenido</div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+      <input type="password" id="login-password" placeholder="Contraseña" required autocomplete="current-password">
+      <div class="login-error" id="login-error"></div>
+      <button type="submit" class="login-btn" id="login-btn">Ingresar</button>
+    </form>
+    <div class="login-divider"></div>
+    <div class="login-register">¿No tenés cuenta? <span onclick="toggleRegister()">Registrarse</span></div>
+    <form id="register-form" style="display:none;flex-direction:column;gap:14px;" onsubmit="handleRegister(event)">
+      <input type="text" id="reg-nombre" placeholder="Nombre completo" required>
+      <input type="email" id="reg-email" placeholder="Email" required>
+      <input type="password" id="reg-password" placeholder="Contraseña (mín. 6 caracteres)" required minlength="6">
+      <div class="login-error" id="reg-error"></div>
+      <button type="submit" class="login-btn" id="reg-btn">Crear cuenta</button>
+      <div class="login-register"><span onclick="toggleRegister()">← Volver al login</span></div>
+    </form>
+  </div>
+</div>
 
 <!-- LOADER -->
 <div id="loader">
@@ -245,6 +294,14 @@ input[type=date]{color-scheme:dark;}
     <h1>CLUTCH<br>REELS</h1>
     <div class="tagline">agencia de contenido</div>
   </div>
+  <div class="sidebar-user" id="sidebar-user">
+    <div class="sidebar-user-avatar" id="su-avatar">?</div>
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name" id="su-nombre">—</div>
+      <div class="sidebar-user-role" id="su-rol">—</div>
+    </div>
+    <div class="sidebar-user-logout" onclick="doLogout()" title="Cerrar sesión">⏏</div>
+  </div>
   <nav class="nav-clutch">
     <div class="nav-item active" data-panel="dashboard">📊 Tablero</div>
     <div class="nav-item" data-panel="clientes">👤 Clientes</div>
@@ -255,6 +312,8 @@ input[type=date]{color-scheme:dark;}
     <div class="nav-item" data-panel="calendario">📅 Calendario</div>
     <div class="nav-item" data-panel="rendimiento">📈 Rendimiento</div>
     <div class="nav-item" data-panel="roadmap">🗺 Roadmap</div>
+    <div class="nav-item" data-panel="servicios">📦 Servicios</div>
+    <div class="nav-item nav-admin" data-panel="usuarios">👥 Usuarios</div>
   </nav>
   <div class="sidebar-stats">
     <div class="badge-stat"><div class="number" id="sc-clientes">0</div><div class="label">clientes activos</div></div>
@@ -411,6 +470,46 @@ input[type=date]{color-scheme:dark;}
   <div class="grid-3" id="roadmap-grid"></div>
 </div>
 
+<!-- SERVICIOS -->
+<div id="servicios" class="panel">
+  <div class="eyebrow">catálogo de la agencia</div>
+  <div class="section-title">Paquetes & Servicios</div>
+  <div class="sub-tabs" id="svc-tabs">
+    <div class="sub-tab active" data-sub="spaq">📦 Paquetes</div>
+    <div class="sub-tab" data-sub="ssvc">🛠 Servicios individuales</div>
+  </div>
+
+  <div class="sub-panel active" id="sub-spaq">
+    <div class="grid-3" id="paquetes-grid"></div>
+  </div>
+
+  <div class="sub-panel" id="sub-ssvc">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="openModal('servicio-form')">➕ Nuevo servicio</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>SERVICIO</th><th>DESCRIPCIÓN</th><th>FORMATO</th><th>PRECIO BASE</th><th></th></tr></thead>
+        <tbody id="svc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- USUARIOS (solo admin) -->
+<div id="usuarios" class="panel">
+  <div class="panel-header">
+    <div><div class="eyebrow">gestión de accesos</div><div class="section-title" style="margin-bottom:0;">Usuarios</div></div>
+    <button class="btn btn-primary" onclick="openModal('nuevo-usuario-form')">➕ Nuevo usuario</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>NOMBRE</th><th>EMAIL</th><th>ROL</th><th>CLIENTES ASIGNADOS</th><th>ESTADO</th><th></th></tr></thead>
+      <tbody id="usuarios-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 </main>
 </div><!-- /app-layout -->
 
@@ -419,10 +518,6 @@ input[type=date]{color-scheme:dark;}
   <div class="save-dot synced" id="save-dot" title="Sincronizado con Supabase"></div>
   <span style="font-size:11px;color:var(--text-muted);">Supabase</span>
 </div>
-
-<!-- ════════════════════════════════════
-     MODALES
-════════════════════════════════════ -->
 
 <!-- MODAL FICHA CLIENTE (ver/editar) -->
 <div id="modal-ficha" class="modal-overlay">
@@ -451,7 +546,7 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ════════════════════════════════════
 // STATE
 // ════════════════════════════════════
-const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[] };
+const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[] };
 
 const FORMATOS = ['Video','Reel','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
@@ -475,7 +570,7 @@ function fmtShort(d){ const dt=new Date(d+'T12:00:00'); return `${dt.getDate()} 
 // ════════════════════════════════════
 async function loadAll() {
   try {
-    const [cl,ld,dl,tm,ex,iv,tx,rm,pk] = await Promise.all([
+    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc] = await Promise.all([
       sb.from('clients').select('*').order('created_at',{ascending:false}),
       sb.from('leads').select('*').order('created_at',{ascending:false}),
       sb.from('deliverables').select('*').order('deadline',{ascending:true}),
@@ -485,16 +580,18 @@ async function loadAll() {
       sb.from('transactions').select('*').order('fecha',{ascending:false}),
       sb.from('roadmap_items').select('*').order('orden'),
       sb.from('packages').select('*').eq('active',true).order('price'),
+      sb.from('service_catalog').select('*').eq('active',true).order('name'),
     ]);
-    S.clients      = cl.data  || [];
-    S.leads        = ld.data  || [];
-    S.deliverables = dl.data  || [];
-    S.teamMembers  = tm.data  || [];
-    S.expenses     = ex.data  || [];
-    S.invoices     = iv.data  || [];
-    S.transactions = tx.data  || [];
-    S.roadmapItems = rm.data  || [];
-    S.packages     = pk.data  || [];
+    S.clients        = cl.data  || [];
+    S.leads          = ld.data  || [];
+    S.deliverables   = dl.data  || [];
+    S.teamMembers    = tm.data  || [];
+    S.expenses       = ex.data  || [];
+    S.invoices       = iv.data  || [];
+    S.transactions   = tx.data  || [];
+    S.roadmapItems   = rm.data  || [];
+    S.packages       = pk.data  || [];
+    S.serviceCatalog = sc.data  || [];
   } catch(e) {
     toast('Error cargando datos: ' + e.message, 'error');
   }
@@ -539,6 +636,8 @@ function openModal(type, data={}) {
   else if (type === 'factura-form') showFacturaForm(data);
   else if (type === 'egreso-form') showEgresoForm(data);
   else if (type === 'transaccion-form') showTransaccionForm(data);
+  else if (type === 'servicio-form') showServicioForm(data);
+  else if (type === 'nuevo-usuario-form') showNuevoUsuarioForm(data);
   document.getElementById('modal-form').classList.add('show');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
@@ -647,24 +746,42 @@ function showEntregableForm(d={}) {
   const formatoOpts = FORMATOS.map(f=>`<option${d.formato===f?' selected':''}>${f}</option>`).join('');
   const estadoOpts  = ESTADOS.map(s=>`<option${d.estado===s?' selected':''}>${s}</option>`).join('');
   const dline = d.deadline || new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const svcOpts = S.serviceCatalog.map(s=>`<option value="${s.id}" data-price="${s.base_price}" data-formato="${s.formato||''}"${d.service_catalog_id===s.id?' selected':''}>${s.name} — ${fmtMoney(s.base_price)}</option>`).join('');
   document.getElementById('form-body').innerHTML = `
     <div class="modal-title">${d.id?'Editar entregable':'Nuevo entregable'}</div>
     <form class="form-grid" onsubmit="submitEntregable(event,'${d.id||''}')">
       <div class="form-group full"><label>Título *</label><input name="titulo" value="${d.titulo||''}" required></div>
-      <div class="form-group"><label>Formato</label><select name="formato">${formatoOpts}</select></div>
-      <div class="form-group"><label>Tipo</label><input name="tipo" value="${d.tipo||''}"></div>
+      <div class="form-group full"><label>Servicio del catálogo <span style="color:var(--text-muted);font-size:10px;">(opcional — pre-carga precio)</span></label>
+        <select name="service_catalog_id" id="svc-picker" onchange="onSvcPick(this)">
+          <option value="">— Seleccioná un servicio —</option>${svcOpts}
+        </select>
+      </div>
+      <div class="form-group"><label>Formato</label><select name="formato" id="ent-formato">${formatoOpts}</select></div>
+      <div class="form-group"><label>Tipo / descripción breve</label><input name="tipo" value="${d.tipo||''}"></div>
       <div class="form-group"><label>Cliente</label><select name="client_id"><option value="">Sin asignar</option>${clienteOptsHtml(d.client_id)}</select></div>
       <div class="form-group"><label>Responsable</label><select name="team_member_id"><option value="">Sin asignar</option>${memberOptsHtml(d.team_member_id)}</select></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${dline}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group"><label>Horas estimadas</label><input name="horas_estimadas" type="number" step="0.5" value="${d.horas_estimadas||0}"></div>
-      <div class="form-group"><label>Precio unitario (USD)</label><input name="precio_unitario" type="number" value="${d.precio_unitario||0}"></div>
-      <div class="form-group full"><label>Feedback</label><input name="feedback" value="${d.feedback||''}"></div>
+      <div class="form-group"><label>Precio (USD) <span style="color:var(--text-muted);font-size:10px;">editable por cliente</span></label><input name="precio_unitario" id="ent-precio" type="number" step="0.01" value="${d.precio_unitario||0}"></div>
+      <div class="form-group full"><label>Feedback / notas</label><input name="feedback" value="${d.feedback||''}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
       </div>
     </form>`;
+}
+
+function onSvcPick(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  const precio = opt.dataset.price;
+  const formato = opt.dataset.formato;
+  if (precio) document.getElementById('ent-precio').value = precio;
+  if (formato) {
+    const fmtSel = document.getElementById('ent-formato');
+    for(let o of fmtSel.options){ if(o.value===formato){ o.selected=true; break; } }
+  }
 }
 
 async function submitEntregable(e, id) {
@@ -916,6 +1033,139 @@ async function toggleOnboarding(clientId, step) {
     renderAll();
   } catch(err) { toast(err.message,'error'); }
 }
+
+function showServicioForm(d={}) {
+  const fmtOpts = ['',  ...FORMATOS].map(f=>`<option value="${f}"${d.formato===f?' selected':''}>${f||'— Sin formato'}</option>`).join('');
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">${d.id?'Editar servicio':'Nuevo servicio'}</div>
+    <form class="form-grid" onsubmit="submitServicio(event,'${d.id||''}')">
+      <div class="form-group full"><label>Nombre del servicio *</label><input name="name" value="${d.name||''}" required placeholder="Ej: Edición de Reel corto"></div>
+      <div class="form-group full"><label>Descripción</label><textarea name="description" placeholder="Explicá qué incluye este servicio, cuándo aplica, qué entrega...">${d.description||''}</textarea></div>
+      <div class="form-group"><label>Formato asociado</label><select name="formato">${fmtOpts}</select></div>
+      <div class="form-group"><label>Precio base (USD)</label><input name="base_price" type="number" step="0.01" value="${d.base_price||0}" placeholder="0"></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+}
+
+async function submitServicio(e, id) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.base_price = parseFloat(f.base_price)||0;
+  if (!f.formato) f.formato = null;
+  try {
+    if (id) {
+      await dbUpdate('service_catalog', id, f);
+      const i = S.serviceCatalog.findIndex(x=>x.id===id);
+      if(i>-1) S.serviceCatalog[i] = {...S.serviceCatalog[i], ...f, id};
+      toast('Servicio actualizado');
+    } else {
+      const r = await dbInsert('service_catalog', f);
+      S.serviceCatalog.push(r);
+      toast('Servicio creado');
+    }
+    closeModal('modal-form');
+    renderServicios();
+  } catch(err) { toast(err.message,'error'); }
+}
+
+async function deleteServicio(id) {
+  if(!confirm('¿Eliminar este servicio?')) return;
+  try {
+    await dbDelete('service_catalog', id);
+    S.serviceCatalog = S.serviceCatalog.filter(x=>x.id!==id);
+    renderServicios();
+    toast('Servicio eliminado');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ════════════════════════════════════
+// RENDER SERVICIOS
+// ════════════════════════════════════
+function renderServicios() {
+  // Paquetes
+  document.getElementById('paquetes-grid').innerHTML = S.packages.length
+    ? S.packages.map(p=>{
+        const svcs = Array.isArray(p.services) ? p.services : (typeof p.services === 'string' ? JSON.parse(p.services) : []);
+        return `<div class="widget">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+            <div class="widget-title">${p.name}</div>
+            <span class="badge badge-active">${fmtMoney(p.price)}/mes</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;line-height:1.5;">${p.description||''}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Incluye (${p.deliverables_per_month||0} entregables/mes):</div>
+          <ul style="list-style:none;display:flex;flex-direction:column;gap:4px;">
+            ${svcs.map(s=>`<li style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;"><span style="color:var(--violet);">✓</span>${s}</li>`).join('')}
+          </ul>
+          <div style="margin-top:14px;display:flex;gap:6px;">
+            <button class="btn btn-sm" onclick="editarPaquete('${p.id}')">✏️ Editar</button>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div class="empty-state">Sin paquetes.</div>';
+
+  // Servicios individuales
+  document.getElementById('svc-tbody').innerHTML = S.serviceCatalog.length
+    ? S.serviceCatalog.map(s=>`<tr>
+        <td style="color:var(--text-primary);font-weight:500;">${s.name}</td>
+        <td style="color:var(--text-secondary);max-width:280px;font-size:12px;">${s.description||'—'}</td>
+        <td>${s.formato ? `${iF(s.formato)} ${s.formato}` : '—'}</td>
+        <td style="font-weight:600;color:var(--violet);">${fmtMoney(s.base_price)}</td>
+        <td style="display:flex;gap:5px;">
+          <button class="btn btn-sm" onclick="openModal('servicio-form',${JSON.stringify(s).replace(/"/g,'&quot;')})">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteServicio('${s.id}')">✕</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty-state">Sin servicios. Agregá el primero.</td></tr>';
+}
+
+function editarPaquete(id) {
+  const p = S.packages.find(x=>x.id===id); if(!p) return;
+  const svcs = Array.isArray(p.services) ? p.services : (typeof p.services==='string' ? JSON.parse(p.services||'[]') : []);
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Editar paquete</div>
+    <form class="form-grid" onsubmit="submitPaquete(event,'${id}')">
+      <div class="form-group full"><label>Nombre</label><input name="name" value="${(p.name||'').replace(/"/g,'&quot;')}" required></div>
+      <div class="form-group full"><label>Descripción</label><textarea name="description">${p.description||''}</textarea></div>
+      <div class="form-group"><label>Precio mensual (USD)</label><input name="price" type="number" step="0.01" value="${p.price||0}" required></div>
+      <div class="form-group"><label>Entregables por mes</label><input name="deliverables_per_month" type="number" value="${p.deliverables_per_month||0}"></div>
+      <div class="form-group full"><label>Qué incluye (uno por línea)</label><textarea name="services" rows="5">${svcs.join('\n')}</textarea></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitPaquete(e, id) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.price = parseFloat(f.price)||0;
+  f.deliverables_per_month = parseInt(f.deliverables_per_month)||0;
+  f.services = f.services.split('\n').map(s=>s.trim()).filter(Boolean);
+  try {
+    await dbUpdate('packages', id, f);
+    const i = S.packages.findIndex(x=>x.id===id);
+    if(i>-1) S.packages[i] = {...S.packages[i], ...f, id};
+    closeModal('modal-form');
+    renderServicios();
+    toast('Paquete actualizado');
+  } catch(err) { toast(err.message,'error'); }
+}
+
+// Sub-tabs de servicios
+document.getElementById('svc-tabs')?.querySelectorAll('.sub-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.getElementById('svc-tabs').querySelectorAll('.sub-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('sub-spaq').classList.remove('active');
+    document.getElementById('sub-ssvc').classList.remove('active');
+    document.getElementById('sub-'+tab.dataset.sub).classList.add('active');
+  });
+});
 
 // ════════════════════════════════════
 // RENDER DASHBOARD
@@ -1346,6 +1596,7 @@ function renderAll() {
   renderCalendario();
   renderRendimiento();
   renderRoadmap();
+  renderServicios();
   renderStats();
 }
 
@@ -1373,12 +1624,275 @@ document.querySelectorAll('.sub-tab').forEach(tab=>{
 });
 
 // ════════════════════════════════════
-// INIT
+// AUTH
 // ════════════════════════════════════
-(async()=>{
+let currentUser    = null;
+let currentProfile = null;
+
+const NAV_BY_ROLE = {
+  admin:   ['dashboard','clientes','crm','produccion','equipo','finanzas','calendario','rendimiento','roadmap','servicios','usuarios'],
+  manager: ['dashboard','clientes','produccion','calendario','rendimiento','roadmap'],
+  editor:  ['dashboard','produccion','calendario'],
+};
+
+function showLogin() {
+  document.getElementById('loader').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.querySelector('.app-layout').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.querySelector('.app-layout').style.display = 'flex';
+  applyRole();
+}
+
+function applyRole() {
+  const rol = currentProfile?.rol || 'editor';
+  const allowed = NAV_BY_ROLE[rol] || NAV_BY_ROLE.editor;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.style.display = allowed.includes(item.dataset.panel) ? '' : 'none';
+  });
+  // Sidebar user info
+  const ini = (currentProfile?.nombre || currentUser?.email || '?').slice(0,2).toUpperCase();
+  document.getElementById('su-avatar').textContent = ini;
+  document.getElementById('su-nombre').textContent = currentProfile?.nombre || currentUser?.email || '—';
+  document.getElementById('su-rol').textContent = rol;
+}
+
+async function bootApp(user) {
+  currentUser = user;
+  const { data } = await sb.from('user_profiles').select('*').eq('id', currentUser.id).single();
+  currentProfile = data;
+  if (!currentProfile) {
+    await new Promise(r => setTimeout(r, 800));
+    const { data: d2 } = await sb.from('user_profiles').select('*').eq('id', currentUser.id).single();
+    currentProfile = d2;
+  }
   await loadAll();
   renderAll();
-  document.getElementById('loader').style.display='none';
+  showApp();
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  btn.textContent = 'Ingresando...'; btn.disabled = true; errEl.textContent = '';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.textContent = 'Ingresar'; btn.disabled = false;
+  if (error) { errEl.textContent = error.message; return; }
+  try {
+    document.getElementById('loader').style.display = 'flex';
+    await bootApp(data.user);
+  } catch(e) {
+    errEl.textContent = 'Error al cargar: ' + e.message;
+    document.getElementById('loader').style.display = 'none';
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('reg-btn');
+  const errEl = document.getElementById('reg-error');
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email  = document.getElementById('reg-email').value.trim();
+  const pass   = document.getElementById('reg-password').value;
+  btn.textContent = 'Creando...'; btn.disabled = true; errEl.textContent = '';
+  const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { nombre } } });
+  btn.textContent = 'Crear cuenta'; btn.disabled = false;
+  if (error) { errEl.textContent = error.message; return; }
+  errEl.style.color = 'var(--success)';
+  errEl.textContent = '✅ Cuenta creada. Ya podés ingresar.';
+  setTimeout(toggleRegister, 2000);
+}
+
+function toggleRegister() {
+  const lf = document.getElementById('login-form');
+  const rf = document.getElementById('register-form');
+  const isLogin = lf.style.display !== 'none';
+  lf.style.display = isLogin ? 'none' : 'flex';
+  rf.style.display = isLogin ? 'flex' : 'none';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('reg-error').textContent = '';
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  currentUser = null; currentProfile = null;
+  showLogin();
+}
+
+// Solo maneja logout después de que la app ya inició
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') showLogin();
+});
+
+// ════════════════════════════════════
+// USUARIOS (admin panel)
+// ════════════════════════════════════
+let allProfiles = [];
+let allClientAccess = [];
+
+async function loadUsuarios() {
+  const [p, a] = await Promise.all([
+    sb.from('user_profiles').select('*').order('created_at'),
+    sb.from('user_client_access').select('*'),
+  ]);
+  allProfiles     = p.data || [];
+  allClientAccess = a.data || [];
+}
+
+async function renderUsuarios() {
+  await loadUsuarios();
+  const tbody = document.getElementById('usuarios-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = allProfiles.map(u => {
+    const clientIds = allClientAccess.filter(a => a.user_id === u.id).map(a => a.client_id);
+    const clientNames = clientIds.map(cid => { const c = S.clients.find(x => x.id === cid); return c ? c.name : '?'; }).join(', ');
+    const rolOpts = ['admin','manager','editor'].map(r => `<option value="${r}"${u.rol===r?' selected':''}>${r}</option>`).join('');
+    const isMe = currentUser && u.id === currentUser.id;
+    return `<tr>
+      <td style="color:var(--text-primary);font-weight:500;">${u.nombre}${isMe?' <span style="font-size:10px;color:var(--violet);">(vos)</span>':''}</td>
+      <td style="color:var(--text-muted);font-size:12px;">${u.id.slice(0,8)}…</td>
+      <td>
+        <select class="cell-select" onchange="cambiarRol('${u.id}',this.value)" ${isMe?'disabled':''}>
+          ${rolOpts}
+        </select>
+      </td>
+      <td>
+        ${u.rol === 'manager'
+          ? `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+              ${clientNames ? clientNames.split(', ').map(n=>`<span class="badge badge-gray">${n}</span>`).join('') : '<span style="color:var(--text-muted);font-size:11px;">Sin clientes</span>'}
+              <button class="btn btn-sm" onclick="gestionarClientes('${u.id}')">✏️</button>
+            </div>`
+          : '<span style="color:var(--text-muted);font-size:11px;">N/A</span>'
+        }
+      </td>
+      <td><span class="badge ${u.activo?'badge-ok':'badge-late'}">${u.activo?'Activo':'Inactivo'}</span></td>
+      <td>
+        ${!isMe ? `<button class="btn btn-sm ${u.activo?'btn-danger':''}" onclick="toggleActivo('${u.id}',${u.activo})">${u.activo?'Desactivar':'Activar'}</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-state">Sin usuarios registrados.</td></tr>';
+}
+
+async function cambiarRol(userId, nuevoRol) {
+  try {
+    await dbUpdate('user_profiles', userId, { rol: nuevoRol });
+    const p = allProfiles.find(x => x.id === userId);
+    if (p) p.rol = nuevoRol;
+    toast(`Rol actualizado a ${nuevoRol}`);
+    renderUsuarios();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function toggleActivo(userId, activo) {
+  try {
+    await dbUpdate('user_profiles', userId, { activo: !activo });
+    toast(activo ? 'Usuario desactivado' : 'Usuario activado');
+    renderUsuarios();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function gestionarClientes(userId) {
+  const u = allProfiles.find(x => x.id === userId);
+  if (!u) return;
+  const asignados = allClientAccess.filter(a => a.user_id === userId).map(a => a.client_id);
+  const checks = S.clients.map(c => `
+    <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border-dim);cursor:pointer;font-size:13px;color:var(--text-secondary);">
+      <input type="checkbox" value="${c.id}" ${asignados.includes(c.id)?'checked':''} style="width:16px;height:16px;accent-color:var(--violet);">
+      ${c.name}
+    </label>`).join('');
+
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Clientes de ${u.nombre}</div>
+    <div style="margin-bottom:16px;font-size:12px;color:var(--text-muted);">Seleccioná los clientes a los que este manager tiene acceso.</div>
+    <div id="client-checks" style="max-height:360px;overflow-y:auto;">${checks}</div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarClientesManager('${userId}')">Guardar</button>
+    </div>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function guardarClientesManager(userId) {
+  const checks = document.querySelectorAll('#client-checks input[type=checkbox]');
+  const seleccionados = [...checks].filter(c => c.checked).map(c => c.value);
+  try {
+    // Eliminar todos los actuales
+    await sb.from('user_client_access').delete().eq('user_id', userId);
+    // Insertar los nuevos
+    if (seleccionados.length) {
+      await sb.from('user_client_access').insert(seleccionados.map(cid => ({ user_id: userId, client_id: cid })));
+    }
+    allClientAccess = allClientAccess.filter(a => a.user_id !== userId);
+    seleccionados.forEach(cid => allClientAccess.push({ user_id: userId, client_id: cid }));
+    toast('Clientes asignados correctamente');
+    closeModal('modal-form');
+    renderUsuarios();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function showNuevoUsuarioForm() {
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Nuevo usuario</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Se crea la cuenta y queda lista para que el usuario ingrese con su email y contraseña.</div>
+    <form class="form-grid" onsubmit="crearUsuario(event)">
+      <div class="form-group full"><label>Nombre completo *</label><input name="nombre" required></div>
+      <div class="form-group"><label>Email *</label><input name="email" type="email" required></div>
+      <div class="form-group"><label>Contraseña inicial *</label><input name="password" type="password" required minlength="6" placeholder="Mínimo 6 caracteres"></div>
+      <div class="form-group full"><label>Rol</label>
+        <select name="rol">
+          <option value="editor">Editor</option>
+          <option value="manager">Account Manager</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear usuario</button>
+      </div>
+    </form>`;
+}
+
+async function crearUsuario(e) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email: f.email,
+      password: f.password,
+      options: { data: { nombre: f.nombre } }
+    });
+    if (error) throw error;
+    // Si el rol no es editor, lo actualizamos después de que el trigger cree el perfil
+    if (f.rol !== 'editor' && data.user) {
+      await new Promise(r => setTimeout(r, 600));
+      await sb.from('user_profiles').update({ rol: f.rol, nombre: f.nombre }).eq('id', data.user.id);
+    }
+    toast(`Usuario ${f.nombre} creado correctamente`);
+    closeModal('modal-form');
+    renderUsuarios();
+  } catch(err) { toast(err.message, 'error'); }
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+(async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { showLogin(); return; }
+    await bootApp(session.user);
+  } catch(e) {
+    console.error('Init error:', e);
+    showLogin();
+  } finally {
+    document.getElementById('loader').style.display = 'none';
+  }
 })();
 </script>
 </body>
