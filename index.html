@@ -767,7 +767,7 @@ function showEntregableForm(d={}) {
       <div class="form-group"><label>Formato</label><select name="formato" id="ent-formato">${formatoOpts}</select></div>
       <div class="form-group"><label>Tipo / descripción breve</label><input name="tipo" value="${d.tipo||''}"></div>
       <div class="form-group"><label>Cliente</label><select name="client_id" onchange="onClienteEntregable(this)"><option value="">Sin asignar</option>${clienteOptsHtml(d.client_id)}</select></div>
-      <div class="form-group"><label>Proyecto <span style="font-size:10px;color:var(--text-muted);">(opcional)</span></label><select name="project_id" id="ent-proyecto"><option value="">Sin proyecto</option>${S.projects.filter(p=>p.client_id===d.client_id&&p.estado==='activo').map(p=>`<option value="${p.id}"${d.project_id===p.id?' selected':''}>${p.nombre}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Proyecto <span style="font-size:10px;color:var(--text-muted);">(elegí un cliente primero)</span></label><select name="project_id" id="ent-proyecto"><option value="">Sin proyecto</option>${S.projects.filter(p=>p.client_id===d.client_id&&p.estado!=='cancelado').map(p=>`<option value="${p.id}"${d.project_id===p.id?' selected':''}>${p.nombre}${p.total_entregables>0?' ('+S.deliverables.filter(x=>x.project_id===p.id&&x.estado==='Finalizado').length+'/'+p.total_entregables+')':''}</option>`).join('')}</select></div>
       <div class="form-group"><label>Responsable</label><select name="team_member_id" id="ent-responsable"><option value="">Sin asignar</option>${memberOptsHtml(d.team_member_id || S.clients.find(c=>c.id===d.client_id)?.default_team_member_id)}</select></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${dline}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
@@ -789,9 +789,15 @@ function onClienteEntregable(sel) {
   }
   const proyectoSel = document.getElementById('ent-proyecto');
   if (proyectoSel) {
-    const clientProjects = S.projects.filter(p => p.client_id === sel.value && p.estado === 'activo');
+    const clientProjects = S.projects.filter(p => p.client_id === sel.value && p.estado !== 'cancelado');
     proyectoSel.innerHTML = '<option value="">Sin proyecto</option>' +
-      clientProjects.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+      clientProjects.map(p => {
+        const done = S.deliverables.filter(x => x.project_id === p.id && x.estado === 'Finalizado').length;
+        const prog = p.total_entregables > 0 ? ` (${done}/${p.total_entregables})` : '';
+        return `<option value="${p.id}">${p.nombre}${prog}</option>`;
+      }).join('');
+    const label = proyectoSel.closest('.form-group')?.querySelector('label span');
+    if (label) label.textContent = clientProjects.length ? '(opcional)' : '(sin proyectos para este cliente)';
   }
 }
 
@@ -1178,19 +1184,27 @@ function buildProyectosSection(clientId) {
 
 function showProyectoForm(clientId, d={}) {
   const estadoOpts = ['activo','pausado','completado','cancelado'].map(s=>`<option value="${s}"${(d.estado||'activo')===s?' selected':''}>${s}</option>`).join('');
-  const svcOpts = S.serviceCatalog.map(s=>`<option value="${s.id}" data-price="${s.base_price}"${d.service_catalog_id===s.id?' selected':''}>${s.name} — ${fmtMoney(s.base_price)} c/u</option>`).join('');
+  const baseValue = d.package_id ? `pkg:${d.package_id}` : d.service_catalog_id ? `svc:${d.service_catalog_id}` : '';
+  const paqOpts = S.packages.map(p=>`<option value="pkg:${p.id}" data-type="package" data-price="${p.price}" data-total="${p.deliverables_per_month||0}"${baseValue===`pkg:${p.id}`?' selected':''}>${p.name} — ${fmtMoney(p.price)}/mes</option>`).join('');
+  const svcOpts = S.serviceCatalog.map(s=>`<option value="svc:${s.id}" data-type="service" data-price="${s.base_price}"${baseValue===`svc:${s.id}`?' selected':''}>${s.name} — ${fmtMoney(s.base_price)} c/u</option>`).join('');
   document.getElementById('form-body').innerHTML = `
     <div class="modal-title">${d.id?'Editar proyecto':'Nuevo proyecto'}</div>
     <form class="form-grid" onsubmit="submitProyecto(event,'${d.id||''}','${clientId}')">
-      <div class="form-group full"><label>Servicio base <span style="font-size:10px;color:var(--text-muted);">(pre-carga precio y nombre)</span></label>
-        <select name="service_catalog_id" id="proy-svc" onchange="onProyectoSvc(this)">
-          <option value="">— Sin servicio base —</option>${svcOpts}
+      <div class="form-group full"><label>Paquete o servicio base <span style="font-size:10px;color:var(--text-muted);">(pre-carga entregables y precio)</span></label>
+        <select name="base_ref" id="proy-base" onchange="onProyectoBase(this)">
+          <option value="">— Sin base —</option>
+          <optgroup label="📦 Paquetes">${paqOpts}</optgroup>
+          <optgroup label="🛠 Servicios individuales">${svcOpts}</optgroup>
         </select>
+      </div>
+      <div class="form-group full" id="proy-incluye-wrap" style="display:none;">
+        <label>Incluye</label>
+        <div id="proy-incluye-list" style="display:flex;flex-direction:column;gap:5px;padding:10px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border-dim);margin-top:4px;"></div>
       </div>
       <div class="form-group full"><label>Nombre del proyecto *</label><input name="nombre" id="proy-nombre" value="${(d.nombre||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack 10 Reels Mayo"></div>
       <div class="form-group full"><label>Descripción</label><textarea name="descripcion">${d.descripcion||''}</textarea></div>
       <div class="form-group"><label>Cantidad contratada</label><input name="total_entregables" id="proy-total" type="number" value="${d.total_entregables||0}" min="0" oninput="recalcProyectoPrecio()"></div>
-      <div class="form-group"><label>Precio total (USD) <span style="font-size:10px;color:var(--text-muted);">auto-calculado</span></label><input name="precio_total" id="proy-precio" type="number" step="0.01" value="${d.precio_total||0}"></div>
+      <div class="form-group"><label>Precio total (USD)</label><input name="precio_total" id="proy-precio" type="number" step="0.01" value="${d.precio_total||0}"></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${d.deadline||''}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
@@ -1200,20 +1214,38 @@ function showProyectoForm(clientId, d={}) {
       </div>
     </form>`;
   document.getElementById('modal-form').classList.add('show');
+  if (baseValue) onProyectoBase(document.getElementById('proy-base'));
 }
 
-function onProyectoSvc(sel) {
+function onProyectoBase(sel) {
   const opt = sel.options[sel.selectedIndex];
-  if (!opt.value) return;
+  if (!opt.value) { document.getElementById('proy-incluye-wrap').style.display = 'none'; return; }
+  const type = opt.dataset.type;
   const nombreEl = document.getElementById('proy-nombre');
   if (nombreEl && !nombreEl.value) nombreEl.value = opt.text.split(' — ')[0];
-  recalcProyectoPrecio();
+  if (type === 'package') {
+    const pkgId = opt.value.slice(4);
+    const pkg = S.packages.find(p => p.id === pkgId);
+    document.getElementById('proy-total').value = opt.dataset.total || 0;
+    document.getElementById('proy-precio').value = parseFloat(opt.dataset.price||0).toFixed(2);
+    const svcs = Array.isArray(pkg?.services) ? pkg.services : (typeof pkg?.services==='string' ? JSON.parse(pkg.services||'[]') : []);
+    const wrap = document.getElementById('proy-incluye-wrap');
+    const list = document.getElementById('proy-incluye-list');
+    if (svcs.length) {
+      list.innerHTML = svcs.map(s=>`<div style="font-size:12px;color:var(--text-secondary);display:flex;gap:8px;align-items:center;"><span style="color:var(--violet);font-size:10px;">✓</span>${s}</div>`).join('');
+      wrap.style.display = '';
+    } else { wrap.style.display = 'none'; }
+  } else {
+    document.getElementById('proy-incluye-wrap').style.display = 'none';
+    recalcProyectoPrecio();
+  }
 }
 
 function recalcProyectoPrecio() {
-  const svcSel = document.getElementById('proy-svc');
-  const opt = svcSel?.options[svcSel.selectedIndex];
-  const precioUnit = opt?.value ? parseFloat(opt.dataset.price)||0 : 0;
+  const sel = document.getElementById('proy-base');
+  const opt = sel?.options[sel.selectedIndex];
+  if (!opt?.value || opt.dataset.type === 'package') return;
+  const precioUnit = parseFloat(opt.dataset.price)||0;
   if (!precioUnit) return;
   const cant = parseInt(document.getElementById('proy-total')?.value)||0;
   if (cant > 0) document.getElementById('proy-precio').value = (precioUnit * cant).toFixed(2);
@@ -1225,7 +1257,11 @@ async function submitProyecto(e, id, clientId) {
   f.total_entregables = parseInt(f.total_entregables)||0;
   f.precio_total = parseFloat(f.precio_total)||0;
   if (!f.deadline) f.deadline = null;
-  if (!f.service_catalog_id) f.service_catalog_id = null;
+  const baseRef = f.base_ref || '';
+  delete f.base_ref;
+  if (baseRef.startsWith('pkg:')) { f.package_id = baseRef.slice(4); f.service_catalog_id = null; }
+  else if (baseRef.startsWith('svc:')) { f.service_catalog_id = baseRef.slice(4); f.package_id = null; }
+  else { f.package_id = null; f.service_catalog_id = null; }
   const cid = clientId || S.projects.find(x=>x.id===id)?.client_id;
   if (!id) f.client_id = cid;
   try {
