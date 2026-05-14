@@ -1588,7 +1588,7 @@ function renderClientes() {
     let progHtml;
     if (proj) {
       const allDels = S.deliverables.filter(d => d.client_id === c.id);
-      const total = parseInt(proj.cantidad_total) || allDels.length || 1;
+      const total = parseInt(proj.total_entregables) || allDels.length || 1;
       const done = allDels.filter(d => d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
@@ -1856,7 +1856,7 @@ function renderProyectosPanel() {
     projs.forEach(p => {
       const linked = S.deliverables.filter(d => d.project_id === p.id);
       const done = linked.filter(d => d.estado === 'Finalizado').length;
-      const total = parseInt(p.cantidad_total)||linked.length||1;
+      const total = parseInt(p.total_entregables)||linked.length||1;
       const pct = Math.round((done/total)*100);
       let baseLabel = '';
       if (p.package_id) {
@@ -1881,7 +1881,7 @@ function renderProyectosPanel() {
           <div style="flex:1;background:var(--bg-dark);border-radius:6px;height:6px;overflow:hidden;">
             <div style="height:100%;width:${pct}%;background:var(--violet);border-radius:6px;"></div>
           </div>
-          <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">${done} / ${total}${p.cantidad_total?' contratados':' entregables'}</span>
+          <span style="font-size:12px;color:var(--text-secondary);white-space:nowrap;">${done} / ${total}${p.total_entregables?' contratados':' entregables'}</span>
         </div>
         ${linked.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;">${linked.map(d=>`<span class="badge ${estadoBadge(d.estado)}" title="${d.titulo}">${iF(d.formato)} ${d.titulo.length>22?d.titulo.slice(0,22)+'…':d.titulo}</span>`).join('')}</div>`:'<div style="font-size:11px;color:var(--text-muted);">Sin entregables vinculados</div>'}
       </div>`;
