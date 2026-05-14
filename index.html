@@ -1178,13 +1178,19 @@ function buildProyectosSection(clientId) {
 
 function showProyectoForm(clientId, d={}) {
   const estadoOpts = ['activo','pausado','completado','cancelado'].map(s=>`<option value="${s}"${(d.estado||'activo')===s?' selected':''}>${s}</option>`).join('');
+  const svcOpts = S.serviceCatalog.map(s=>`<option value="${s.id}" data-price="${s.base_price}"${d.service_catalog_id===s.id?' selected':''}>${s.name} — ${fmtMoney(s.base_price)} c/u</option>`).join('');
   document.getElementById('form-body').innerHTML = `
     <div class="modal-title">${d.id?'Editar proyecto':'Nuevo proyecto'}</div>
     <form class="form-grid" onsubmit="submitProyecto(event,'${d.id||''}','${clientId}')">
-      <div class="form-group full"><label>Nombre *</label><input name="nombre" value="${(d.nombre||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack 10 Videos Mayo"></div>
+      <div class="form-group full"><label>Servicio base <span style="font-size:10px;color:var(--text-muted);">(pre-carga precio y nombre)</span></label>
+        <select name="service_catalog_id" id="proy-svc" onchange="onProyectoSvc(this)">
+          <option value="">— Sin servicio base —</option>${svcOpts}
+        </select>
+      </div>
+      <div class="form-group full"><label>Nombre del proyecto *</label><input name="nombre" id="proy-nombre" value="${(d.nombre||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack 10 Reels Mayo"></div>
       <div class="form-group full"><label>Descripción</label><textarea name="descripcion">${d.descripcion||''}</textarea></div>
-      <div class="form-group"><label>Total entregables contratados</label><input name="total_entregables" type="number" value="${d.total_entregables||0}" min="0"></div>
-      <div class="form-group"><label>Precio total (USD)</label><input name="precio_total" type="number" step="0.01" value="${d.precio_total||0}"></div>
+      <div class="form-group"><label>Cantidad contratada</label><input name="total_entregables" id="proy-total" type="number" value="${d.total_entregables||0}" min="0" oninput="recalcProyectoPrecio()"></div>
+      <div class="form-group"><label>Precio total (USD) <span style="font-size:10px;color:var(--text-muted);">auto-calculado</span></label><input name="precio_total" id="proy-precio" type="number" step="0.01" value="${d.precio_total||0}"></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${d.deadline||''}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
@@ -1196,12 +1202,30 @@ function showProyectoForm(clientId, d={}) {
   document.getElementById('modal-form').classList.add('show');
 }
 
+function onProyectoSvc(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+  const nombreEl = document.getElementById('proy-nombre');
+  if (nombreEl && !nombreEl.value) nombreEl.value = opt.text.split(' — ')[0];
+  recalcProyectoPrecio();
+}
+
+function recalcProyectoPrecio() {
+  const svcSel = document.getElementById('proy-svc');
+  const opt = svcSel?.options[svcSel.selectedIndex];
+  const precioUnit = opt?.value ? parseFloat(opt.dataset.price)||0 : 0;
+  if (!precioUnit) return;
+  const cant = parseInt(document.getElementById('proy-total')?.value)||0;
+  if (cant > 0) document.getElementById('proy-precio').value = (precioUnit * cant).toFixed(2);
+}
+
 async function submitProyecto(e, id, clientId) {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target));
   f.total_entregables = parseInt(f.total_entregables)||0;
   f.precio_total = parseFloat(f.precio_total)||0;
   if (!f.deadline) f.deadline = null;
+  if (!f.service_catalog_id) f.service_catalog_id = null;
   const cid = clientId || S.projects.find(x=>x.id===id)?.client_id;
   if (!id) f.client_id = cid;
   try {
