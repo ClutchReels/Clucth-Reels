@@ -573,7 +573,7 @@ const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], 
 
 const FORMATOS = ['Video','Reel','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
-const ESTADOS  = ['Idea','En edición','Revisión interna','Enviado','Correcciones','Finalizado'];
+const ESTADOS  = ['Idea','Aprobación guión','En edición','Revisión interna','Enviado','Correcciones','Finalizado'];
 const ROLES    = ['Editor de video','Motion designer','Fotógrafo','Copywriter','Community manager','Estratega','Account manager','Paid specialist'];
 const STAGES_CRM = ['Prospecto','Contactado','Propuesta enviada','Negociación','Ganado','Perdido'];
 const CATS_EGR = ['Sueldos','Freelancers','Software','Marketing','Oficina','Producción','Otros'];
@@ -1094,7 +1094,10 @@ function openFicha(id) {
           <span class="badge ${c.client_type==='package'?'badge-ok':'badge-gray'}">${c.client_type==='package'?'Pack':'Solo video'}</span>
         </div>
       </div>
-      <button class="btn btn-sm" onclick="closeModal('modal-ficha');openModal('cliente-form',${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Editar</button>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="btn btn-sm" onclick="closeModal('modal-ficha');openModal('cliente-form',${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Editar</button>
+        <button class="btn btn-sm" onclick="copyClientLink('${c.id}')" style="border-color:var(--violet);color:var(--violet);">🔗 Link cliente</button>
+      </div>
     </div>
 
     <div class="ficha-section">
@@ -1137,8 +1140,13 @@ function openFicha(id) {
 }
 
 function estadoBadge(est) {
-  const m = {'Idea':'badge-gray','En edición':'badge-active','Revisión interna':'badge-active','Enviado':'badge-risk','Correcciones':'badge-late','Finalizado':'badge-ok'};
+  const m = {'Idea':'badge-gray','Aprobación guión':'badge-risk','En edición':'badge-active','Revisión interna':'badge-active','Enviado':'badge-risk','Correcciones':'badge-late','Finalizado':'badge-ok'};
   return m[est]||'badge-gray';
+}
+
+function copyClientLink(id) {
+  const url = `${location.origin}/client-view.html?id=${id}`;
+  navigator.clipboard.writeText(url).then(() => toast('Link copiado ✓')).catch(() => toast('No se pudo copiar','error'));
 }
 
 async function toggleOnboarding(clientId, step) {

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clutch Reels · Tu producción</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0a;--card:#111111;--elevated:#1a1a1a;--border:#2a2a2a;
+  --violet:#a855f7;--glow:#c084fc;--text:#f0f0f0;--sub:#b0b0b0;--muted:#6a6a6a;
+  --danger:#ff6b6b;--success:#a8e6cf;--warning:#ffd93d;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;padding:0 0 80px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 2px,transparent 2px,transparent 6px);z-index:999;}
+
+.top-bar{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:center;position:sticky;top:0;z-index:10;}
+.logo{font-family:'Playfair Display',serif;font-size:20px;background:linear-gradient(135deg,#fff,var(--glow));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;}
+.tagline{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;text-align:center;}
+
+.wrap{max-width:600px;margin:0 auto;padding:32px 20px;}
+
+.greeting{text-align:center;margin-bottom:32px;}
+.greeting h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:6px;}
+.greeting p{font-size:13px;color:var(--sub);}
+
+.approval-banner{background:rgba(255,217,61,.07);border:1px solid rgba(255,217,61,.3);border-radius:14px;padding:16px 18px;margin-bottom:24px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--warning);}
+.approval-banner strong{font-weight:700;}
+
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--violet);font-weight:600;margin-bottom:14px;}
+
+.project-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+.project-title{font-weight:700;font-size:15px;margin-bottom:14px;}
+
+.progress-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.progress-track{flex:1;height:7px;background:var(--elevated);border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:4px;transition:.4s;}
+.progress-label{font-size:12px;color:var(--sub);white-space:nowrap;font-weight:500;}
+
+.del-list{display:flex;flex-direction:column;gap:0;}
+.del-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.del-item:last-child{border-bottom:none;padding-bottom:0;}
+.del-icon{font-size:16px;flex-shrink:0;}
+.del-title{flex:1;color:var(--text);font-weight:500;line-height:1.3;}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
+.b-default{background:rgba(106,106,106,.15);color:var(--muted);}
+.b-editing{background:rgba(168,85,247,.12);color:var(--violet);}
+.b-approval{background:rgba(255,217,61,.12);color:var(--warning);border:1px solid rgba(255,217,61,.25);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
+.b-sent{background:rgba(192,132,252,.12);color:var(--glow);}
+.b-fix{background:rgba(255,107,107,.12);color:var(--danger);}
+.b-done{background:rgba(168,230,207,.12);color:var(--success);}
+
+.no-projects{text-align:center;color:var(--muted);padding:60px 0;font-size:13px;}
+.loader{text-align:center;color:var(--muted);padding:80px;font-size:14px;}
+.error-msg{text-align:center;color:var(--danger);padding:60px 20px;font-size:13px;line-height:1.6;}
+
+.footer{text-align:center;margin-top:48px;font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <div class="logo">Clutch Reels</div>
+    <div class="tagline">content agency</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="app"><div class="loader">Cargando tu producción...</div></div>
+  <div class="footer">Actualizado en tiempo real · Clutch Reels</div>
+</div>
+
+<script>
+const SB_URL = 'https://ignutaeaqfsvixydrqit.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlnbnV0YWVhcWZzdml4eWRycWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNjQ1MjAsImV4cCI6MjA5Mzk0MDUyMH0.M0mvUN9mPZI71fczjRv4-5kOY9c8SiI8KURREH6TG3w';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const cid = new URLSearchParams(location.search).get('id');
+
+const ESTADO_INFO = {
+  'Idea':             { label: 'En proceso',                  cls: 'b-default' },
+  'Aprobación guión': { label: '✍️ Esperando tu aprobación', cls: 'b-approval' },
+  'En edición':       { label: 'En edición',                  cls: 'b-editing' },
+  'Revisión interna': { label: 'Revisión final',              cls: 'b-editing' },
+  'Enviado':          { label: 'Enviado ✓',                   cls: 'b-sent'    },
+  'Correcciones':     { label: 'En correcciones',             cls: 'b-fix'     },
+  'Finalizado':       { label: 'Listo ✓',                     cls: 'b-done'    },
+};
+
+const FMT_ICON = {
+  'Reel':'🎬','Historia':'📱','Post':'🖼️','Carrusel':'📚','Video':'🎥',
+  'Podcast':'🎙️','Foto':'📷','Thumbnail':'🖼️',
+};
+function iF(f){ return FMT_ICON[f] || '📄'; }
+
+async function init() {
+  if (!cid) {
+    show('<div class="error-msg">Link inválido.<br>Pedile a Clutch Reels el link correcto.</div>');
+    return;
+  }
+  try {
+    const [cr, pr, dr] = await Promise.all([
+      sb.from('clients').select('name,logo_initials').eq('id', cid).single(),
+      sb.from('projects').select('*').eq('client_id', cid).neq('estado','cancelado').order('created_at',{ascending:false}),
+      sb.from('deliverables').select('id,titulo,formato,estado,project_id').eq('client_id', cid),
+    ]);
+    if (cr.error || !cr.data) {
+      show('<div class="error-msg">No encontramos tu información.<br>Contactá a Clutch Reels.</div>');
+      return;
+    }
+    render(cr.data, pr.data || [], dr.data || []);
+  } catch(e) {
+    show('<div class="error-msg">Error de conexión. Intentá de nuevo.</div>');
+  }
+}
+
+function render(client, projects, deliverables) {
+  const pendingApproval = deliverables.filter(d => d.estado === 'Aprobación guión').length;
+
+  let html = `<div class="greeting">
+    <h1>Hola, ${client.name} 👋</h1>
+    <p>Este es el avance de tu producción en tiempo real.</p>
+  </div>`;
+
+  if (pendingApproval > 0) {
+    html += `<div class="approval-banner">
+      <span style="font-size:20px;">✍️</span>
+      <span>Tenés <strong>${pendingApproval} ${pendingApproval === 1 ? 'guión' : 'guiones'}</strong> esperando tu aprobación. Revisalos con tu equipo de Clutch Reels.</span>
+    </div>`;
+  }
+
+  if (!projects.length) {
+    html += '<div class="no-projects">No hay proyectos activos por el momento.</div>';
+  } else {
+    html += '<div class="section-label">Tus proyectos</div>';
+    projects.forEach(p => {
+      const linked = deliverables.filter(d => d.project_id === p.id);
+      const done = linked.filter(d => d.estado === 'Finalizado').length;
+      const total = parseInt(p.cantidad_total) || linked.length || 1;
+      const pct = Math.round((done / total) * 100);
+      const fillColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
+
+      html += `<div class="project-card">
+        <div class="project-title">${p.nombre}</div>
+        <div class="progress-row">
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${pct}%;background:${fillColor};"></div>
+          </div>
+          <div class="progress-label">${done}/${total} · ${pct}%</div>
+        </div>
+        <div class="del-list">
+          ${linked.length
+            ? linked.map(d => {
+                const info = ESTADO_INFO[d.estado] || { label: d.estado, cls: 'b-default' };
+                return `<div class="del-item">
+                  <span class="del-icon">${iF(d.formato)}</span>
+                  <span class="del-title">${d.titulo}</span>
+                  <span class="badge ${info.cls}">${info.label}</span>
+                </div>`;
+              }).join('')
+            : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Sin entregables cargados aún.</div>'
+          }
+        </div>
+      </div>`;
+    });
+  }
+
+  show(html);
+}
+
+function show(html) {
+  document.getElementById('app').innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
