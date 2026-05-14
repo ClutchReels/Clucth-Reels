@@ -91,8 +91,11 @@ tr:hover td{background:rgba(168,85,247,.03);}
 .kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px;}
 .kanban-col{min-width:220px;max-width:260px;background:var(--bg-elevated);border-radius:14px;padding:14px;border:1px solid var(--border-dim);}
 .kanban-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--violet);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
-.kanban-card{background:var(--bg-card);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--violet);cursor:pointer;transition:.15s;}
+.kanban-card{background:var(--bg-card);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--violet);cursor:grab;transition:.15s;}
 .kanban-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(168,85,247,.1);}
+.kanban-card.dragging{opacity:.35;transform:scale(.96);cursor:grabbing;}
+.kanban-col.drag-over{border-color:var(--violet);background:rgba(168,85,247,.1);transform:scale(1.01);}
+.kanban-col{transition:background .15s,border-color .15s,transform .15s;}
 .kanban-empty{font-size:11px;color:var(--text-muted);text-align:center;padding:20px 0;font-style:italic;}
 
 /* CLIENTE CARDS */
@@ -1571,11 +1574,11 @@ function renderProduccion() {
   const hoy = isoToday();
   document.getElementById('prod-kanban').innerHTML = ESTADOS.map(est=>{
     const cards = S.deliverables.filter(v=>v.estado===est);
-    return `<div class="kanban-col">
+    return `<div class="kanban-col" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'${est}')">
       <div class="kanban-header">${est}<span style="color:var(--text-muted);">${cards.length}</span></div>
       ${cards.length?cards.map(v=>{
         const late = v.deadline && v.deadline<hoy && est!=='Finalizado';
-        return `<div class="kanban-card" onclick="openModal('entregable-form',${JSON.stringify(v).replace(/"/g,'&quot;')})">
+        return `<div class="kanban-card" draggable="true" ondragstart="onDragStart(event,'${v.id}')" ondragend="onDragEnd(event)" onclick="openModal('entregable-form',${JSON.stringify(v).replace(/"/g,'&quot;')})">
           <div style="font-weight:600;">${iF(v.formato)} ${v.titulo}</div>
           <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">${clientName(v.client_id)} · ${memberName(v.team_member_id)}</div>
           <div style="font-size:11px;margin-top:4px;color:${late?'var(--danger)':'var(--text-muted)'};">${late?'⚠️ ATRASADO':v.deadline||'Sin fecha'}</div>
@@ -1608,6 +1611,43 @@ function renderProduccion() {
       </td>
     </tr>`;
   }).join('') || '<tr><td colspan="10" class="empty-state">Sin entregables.</td></tr>';
+}
+
+// ════════════════════════════════════
+// DRAG & DROP KANBAN
+// ════════════════════════════════════
+let _dragId = null;
+
+function onDragStart(e, id) {
+  _dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.closest('.kanban-card')?.classList.add('dragging'), 0);
+}
+function onDragEnd(e) {
+  e.target.closest('.kanban-card')?.classList.remove('dragging');
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+async function onDrop(e, estado) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragId) return;
+  const v = S.deliverables.find(x => x.id === _dragId);
+  _dragId = null;
+  if (!v || v.estado === estado) return;
+  try {
+    await dbUpdate('deliverables', v.id, {estado});
+    v.estado = estado;
+    renderAll();
+    toast(`→ ${estado}`);
+  } catch(err) { toast(err.message,'error'); }
 }
 
 async function avanzarEstado(id) {
