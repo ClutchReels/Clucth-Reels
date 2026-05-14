@@ -1112,8 +1112,21 @@ function openFicha(id) {
     </div>
 
     <div class="ficha-section">
-      <div class="ficha-section-title">🎨 Paleta de marca</div>
-      <div class="swatch-row">${paleta.map(col=>`<div class="swatch" style="background:${col};">${col}</div>`).join('')}</div>
+      <div class="ficha-section-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>🎨 Paleta de marca</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm" onclick="addPaletaColor('${id}')">+ Color</button>
+          <button class="btn btn-sm btn-primary" onclick="savePaleta('${id}')">Guardar</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;" id="paleta-row-${id}">
+        ${paleta.map((col,i)=>`
+          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:10px;padding:6px 10px;">
+            <input type="color" value="${col}" oninput="updatePaletaColor('${id}',${i},this.value)" style="width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0;border-radius:4px;">
+            <span style="font-size:11px;color:var(--text-muted);font-family:monospace;" id="pal-hex-${id}-${i}">${col}</span>
+            <button onclick="removePaletaColor('${id}',${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">×</button>
+          </div>`).join('')}
+      </div>
     </div>
 
     <div class="ficha-section">
@@ -1147,6 +1160,36 @@ function estadoBadge(est) {
 function copyClientLink(id) {
   const url = `${location.origin}/client-view.html?id=${id}`;
   navigator.clipboard.writeText(url).then(() => toast('Link copiado ✓')).catch(() => toast('No se pudo copiar','error'));
+}
+
+function updatePaletaColor(clientId, index, value) {
+  const c = S.clients.find(x => x.id === clientId); if (!c) return;
+  if (!Array.isArray(c.paleta)) c.paleta = ['#a855f7','#0a0a0a','#f0f0f0','#c084fc'];
+  c.paleta[index] = value;
+  const el = document.getElementById(`pal-hex-${clientId}-${index}`);
+  if (el) el.textContent = value;
+}
+
+function addPaletaColor(clientId) {
+  const c = S.clients.find(x => x.id === clientId); if (!c) return;
+  if (!Array.isArray(c.paleta)) c.paleta = [];
+  c.paleta.push('#ffffff');
+  openFicha(clientId);
+}
+
+function removePaletaColor(clientId, index) {
+  const c = S.clients.find(x => x.id === clientId); if (!c) return;
+  if (!Array.isArray(c.paleta)) return;
+  c.paleta.splice(index, 1);
+  openFicha(clientId);
+}
+
+async function savePaleta(clientId) {
+  const c = S.clients.find(x => x.id === clientId); if (!c) return;
+  try {
+    await dbUpdate('clients', clientId, { paleta: c.paleta });
+    toast('Paleta guardada ✓');
+  } catch(e) { toast(e.message, 'error'); }
 }
 
 async function toggleOnboarding(clientId, step) {
