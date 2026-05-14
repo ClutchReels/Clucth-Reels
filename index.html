@@ -1591,20 +1591,26 @@ function renderClientes() {
       const done = S.deliverables.filter(d => d.client_id === c.id && d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
-      progHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:4px;">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${proj.nombre}</span>
-        <span style="flex-shrink:0;margin-left:6px;color:var(--text-secondary);">${done}/${total} · ${pct}%</span>
-      </div>
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${barColor};"></div></div>`;
+      const typeIcon = proj.package_id ? '📦' : '🎬';
+      progHtml = `<div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:10px;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;">Proyecto activo</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px;">${typeIcon} ${proj.nombre}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="progress-bar-wrap" style="flex:1;margin-bottom:0;"><div class="progress-bar" style="width:${pct}%;background:${barColor};"></div></div>
+          <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;flex-shrink:0;">${done}/${total} · ${pct}%</span>
+        </div>
+      </div>`;
     } else {
-      progHtml = `<div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;font-style:italic;">Sin proyecto activo</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:0%;"></div></div>`;
+      progHtml = `<div style="border-top:1px solid var(--border-dim);margin-top:10px;padding-top:10px;">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:4px;">Proyecto activo</div>
+        <div style="font-size:12px;color:var(--text-muted);font-style:italic;">Sin proyecto activo</div>
+      </div>`;
     }
     return `<div class="cliente-card" onclick="openFicha('${c.id}')">
       <div class="avatar">${c.logo_initials||'?'}</div>
       <div class="cliente-name">${c.name}</div>
       <div class="cliente-meta">${c.industria||''} · ${c.referente||''}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0;">
         <span class="badge ${c.pipeline==='Activo'?'badge-active':c.pipeline==='Riesgo'?'badge-risk':'badge-gray'}">${c.pipeline}</span>
         <span class="badge badge-active">${fmtMoney(c.ingreso_mensual)}/mes</span>
       </div>
