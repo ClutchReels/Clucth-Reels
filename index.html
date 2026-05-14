@@ -1519,14 +1519,13 @@ function renderClientes() {
     const proj = S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado' && p.estado !== 'finalizado');
     let progHtml;
     if (proj) {
-      const linked = S.deliverables.filter(d => d.project_id === proj.id);
-      const done = linked.filter(d => d.estado === 'Finalizado').length;
-      const total = parseInt(proj.cantidad_total) || linked.length || 1;
+      const total = parseInt(proj.cantidad_total) || 1;
+      const done = S.deliverables.filter(d => d.project_id === proj.id && d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
       progHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:4px;">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:155px;">${proj.nombre}</span>
-        <span style="flex-shrink:0;margin-left:6px;color:var(--text-secondary);">${done}/${total}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${proj.nombre}</span>
+        <span style="flex-shrink:0;margin-left:6px;color:var(--text-secondary);">${done}/${total} · ${pct}%</span>
       </div>
       <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${barColor};"></div></div>`;
     } else {
