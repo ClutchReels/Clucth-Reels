@@ -1587,8 +1587,9 @@ function renderClientes() {
               || S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado');
     let progHtml;
     if (proj) {
-      const total = parseInt(proj.cantidad_total) || 1;
-      const done = S.deliverables.filter(d => d.client_id === c.id && d.estado === 'Finalizado').length;
+      const allDels = S.deliverables.filter(d => d.client_id === c.id);
+      const total = parseInt(proj.cantidad_total) || allDels.length || 1;
+      const done = allDels.filter(d => d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
       const typeIcon = proj.package_id ? '📦' : '🎬';
