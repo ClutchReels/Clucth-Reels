@@ -1079,7 +1079,7 @@ function openFicha(id) {
   const steps = ['accesos','brand','referencias','objetivos','primerCalendario'];
   const stepLabels = ['Accesos a redes y plataformas','Brand kit (logo, paleta, tipografías)','Referencias visuales y de tono','Objetivos comerciales claros','Primer calendario aprobado'];
   const pct = Math.round((steps.filter(s=>onb[s]).length/steps.length)*100);
-  const paleta = Array.isArray(c.paleta) ? c.paleta : ['#a855f7','#0a0a0a','#f0f0f0','#c084fc'];
+  const paleta = normalizePaleta(c.paleta);
   const videos = S.deliverables.filter(d=>d.client_id===id);
 
   document.getElementById('ficha-body').innerHTML = `
@@ -1119,12 +1119,17 @@ function openFicha(id) {
           <button class="btn btn-sm btn-primary" onclick="savePaleta('${id}')">Guardar</button>
         </div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;" id="paleta-row-${id}">
-        ${paleta.map((col,i)=>`
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:10px;padding:6px 10px;">
-            <input type="color" value="${col}" oninput="updatePaletaColor('${id}',${i},this.value)" style="width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0;border-radius:4px;">
-            <span style="font-size:11px;color:var(--text-muted);font-family:monospace;" id="pal-hex-${id}-${i}">${col}</span>
-            <button onclick="removePaletaColor('${id}',${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;">×</button>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;">
+        ${paleta.map((item,i)=>`
+          <div style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-width:130px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div id="pal-swatch-${id}-${i}" style="width:32px;height:32px;border-radius:8px;background:${item.color};border:1px solid rgba(255,255,255,.12);flex-shrink:0;position:relative;cursor:pointer;overflow:hidden;">
+                <input type="color" value="${item.color}" oninput="updatePaletaColor('${id}',${i},'color',this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:none;">
+              </div>
+              <span style="font-size:10px;color:var(--text-muted);font-family:monospace;" id="pal-hex-${id}-${i}">${item.color}</span>
+              <button onclick="removePaletaColor('${id}',${i})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0;margin-left:auto;line-height:1;">×</button>
+            </div>
+            <input type="text" value="${(item.label||'').replace(/"/g,'&quot;')}" placeholder="Nombre (ej: Fondo)" oninput="updatePaletaColor('${id}',${i},'label',this.value)" style="background:var(--bg-dark);border:1px solid var(--border-dim);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text-secondary);font-family:inherit;width:100%;outline:none;">
           </div>`).join('')}
       </div>
     </div>
@@ -1157,35 +1162,45 @@ function estadoBadge(est) {
   return m[est]||'badge-gray';
 }
 
+function normalizePaleta(raw) {
+  if (!Array.isArray(raw) || !raw.length) return [{color:'#a855f7',label:''},{color:'#0a0a0a',label:''},{color:'#f0f0f0',label:''},{color:'#c084fc',label:''}];
+  return raw.map(item => typeof item === 'string' ? {color: item, label: ''} : item);
+}
+
 function copyClientLink(id) {
   const url = `${location.origin}/client-view.html?id=${id}`;
   navigator.clipboard.writeText(url).then(() => toast('Link copiado ✓')).catch(() => toast('No se pudo copiar','error'));
 }
 
-function updatePaletaColor(clientId, index, value) {
+function updatePaletaColor(clientId, index, field, value) {
   const c = S.clients.find(x => x.id === clientId); if (!c) return;
-  if (!Array.isArray(c.paleta)) c.paleta = ['#a855f7','#0a0a0a','#f0f0f0','#c084fc'];
-  c.paleta[index] = value;
-  const el = document.getElementById(`pal-hex-${clientId}-${index}`);
-  if (el) el.textContent = value;
+  c.paleta = normalizePaleta(c.paleta);
+  c.paleta[index][field] = value;
+  if (field === 'color') {
+    const hex = document.getElementById(`pal-hex-${clientId}-${index}`);
+    if (hex) hex.textContent = value;
+    const swatch = document.getElementById(`pal-swatch-${clientId}-${index}`);
+    if (swatch) swatch.style.background = value;
+  }
 }
 
 function addPaletaColor(clientId) {
   const c = S.clients.find(x => x.id === clientId); if (!c) return;
-  if (!Array.isArray(c.paleta)) c.paleta = [];
-  c.paleta.push('#ffffff');
+  c.paleta = normalizePaleta(c.paleta);
+  c.paleta.push({color: '#ffffff', label: ''});
   openFicha(clientId);
 }
 
 function removePaletaColor(clientId, index) {
   const c = S.clients.find(x => x.id === clientId); if (!c) return;
-  if (!Array.isArray(c.paleta)) return;
+  c.paleta = normalizePaleta(c.paleta);
   c.paleta.splice(index, 1);
   openFicha(clientId);
 }
 
 async function savePaleta(clientId) {
   const c = S.clients.find(x => x.id === clientId); if (!c) return;
+  c.paleta = normalizePaleta(c.paleta);
   try {
     await dbUpdate('clients', clientId, { paleta: c.paleta });
     toast('Paleta guardada ✓');
@@ -1572,9 +1587,8 @@ function renderClientes() {
               || S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado');
     let progHtml;
     if (proj) {
-      const allLinked = S.deliverables.filter(d => d.project_id === proj.id);
-      const total = parseInt(proj.cantidad_total) || allLinked.length || 1;
-      const done = allLinked.filter(d => d.estado === 'Finalizado').length;
+      const total = parseInt(proj.cantidad_total) || 1;
+      const done = S.deliverables.filter(d => d.client_id === c.id && d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
       progHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:4px;">
