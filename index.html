@@ -550,7 +550,7 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ════════════════════════════════════
 // STATE
 // ════════════════════════════════════
-const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[] };
+const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[] };
 
 const FORMATOS = ['Video','Reel','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
@@ -574,7 +574,7 @@ function fmtShort(d){ const dt=new Date(d+'T12:00:00'); return `${dt.getDate()} 
 // ════════════════════════════════════
 async function loadAll() {
   try {
-    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc] = await Promise.all([
+    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc,pj] = await Promise.all([
       sb.from('clients').select('*').order('created_at',{ascending:false}),
       sb.from('leads').select('*').order('created_at',{ascending:false}),
       sb.from('deliverables').select('*').order('deadline',{ascending:true}),
@@ -585,6 +585,7 @@ async function loadAll() {
       sb.from('roadmap_items').select('*').order('orden'),
       sb.from('packages').select('*').eq('active',true).order('price'),
       sb.from('service_catalog').select('*').eq('active',true).order('name'),
+      sb.from('projects').select('*').order('created_at',{ascending:false}),
     ]);
     S.clients        = cl.data  || [];
     S.leads          = ld.data  || [];
@@ -596,6 +597,7 @@ async function loadAll() {
     S.roadmapItems   = rm.data  || [];
     S.packages       = pk.data  || [];
     S.serviceCatalog = sc.data  || [];
+    S.projects       = pj.data  || [];
   } catch(e) {
     toast('Error cargando datos: ' + e.message, 'error');
   }
@@ -765,6 +767,7 @@ function showEntregableForm(d={}) {
       <div class="form-group"><label>Formato</label><select name="formato" id="ent-formato">${formatoOpts}</select></div>
       <div class="form-group"><label>Tipo / descripción breve</label><input name="tipo" value="${d.tipo||''}"></div>
       <div class="form-group"><label>Cliente</label><select name="client_id" onchange="onClienteEntregable(this)"><option value="">Sin asignar</option>${clienteOptsHtml(d.client_id)}</select></div>
+      <div class="form-group"><label>Proyecto <span style="font-size:10px;color:var(--text-muted);">(opcional)</span></label><select name="project_id" id="ent-proyecto"><option value="">Sin proyecto</option>${S.projects.filter(p=>p.client_id===d.client_id&&p.estado==='activo').map(p=>`<option value="${p.id}"${d.project_id===p.id?' selected':''}>${p.nombre}</option>`).join('')}</select></div>
       <div class="form-group"><label>Responsable</label><select name="team_member_id" id="ent-responsable"><option value="">Sin asignar</option>${memberOptsHtml(d.team_member_id || S.clients.find(c=>c.id===d.client_id)?.default_team_member_id)}</select></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${dline}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
@@ -783,6 +786,12 @@ function onClienteEntregable(sel) {
   if (client?.default_team_member_id) {
     const memberSel = document.getElementById('ent-responsable');
     if (memberSel && !memberSel.value) memberSel.value = client.default_team_member_id;
+  }
+  const proyectoSel = document.getElementById('ent-proyecto');
+  if (proyectoSel) {
+    const clientProjects = S.projects.filter(p => p.client_id === sel.value && p.estado === 'activo');
+    proyectoSel.innerHTML = '<option value="">Sin proyecto</option>' +
+      clientProjects.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
   }
 }
 
@@ -806,6 +815,7 @@ async function submitEntregable(e, id) {
   if (!f.client_id) f.client_id = null;
   if (!f.team_member_id) f.team_member_id = null;
   if (!f.service_catalog_id) f.service_catalog_id = null;
+  if (!f.project_id) f.project_id = null;
   try {
     if (id) {
       await dbUpdate('deliverables', id, f);
@@ -1086,6 +1096,8 @@ function openFicha(id) {
       </ul>
     </div>
 
+    ${buildProyectosSection(id)}
+
     <div class="ficha-section">
       <div class="ficha-section-title">🎬 Entregables (${videos.length})</div>
       ${videos.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse;">${videos.slice(0,5).map(v=>`<tr><td style="padding:6px 0;color:var(--text-primary);">${iF(v.formato)} ${v.titulo}</td><td style="color:var(--text-muted);">${v.deadline||'—'}</td><td><span class="badge ${estadoBadge(v.estado)}">${v.estado}</span></td></tr>`).join('')}</table>` : '<div class="empty-state" style="padding:16px;">Sin entregables</div>'}
@@ -1114,6 +1126,114 @@ async function toggleOnboarding(clientId, step) {
     openFicha(clientId);
     renderAll();
   } catch(err) { toast(err.message,'error'); }
+}
+
+// ════════════════════════════════════
+// PROYECTOS
+// ════════════════════════════════════
+function buildProyectosSection(clientId) {
+  const proyectos = S.projects.filter(p => p.client_id === clientId);
+  let html = `<div class="ficha-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="ficha-section-title" style="margin-bottom:0;">📁 Proyectos (${proyectos.length})</div>
+      <button class="btn btn-sm" onclick="showProyectoForm('${clientId}')">➕ Nuevo</button>
+    </div>`;
+  if (!proyectos.length) {
+    html += '<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">Sin proyectos activos.</div>';
+  } else {
+    proyectos.forEach(p => {
+      const ents = S.deliverables.filter(d => d.project_id === p.id);
+      const done = ents.filter(d => d.estado === 'Finalizado').length;
+      const pct = p.total_entregables > 0 ? Math.round((done / p.total_entregables) * 100) : 0;
+      const estadoCol = {activo:'badge-active',pausado:'badge-risk',completado:'badge-ok',cancelado:'badge-late'}[p.estado]||'badge-gray';
+      html += `<div style="background:var(--bg-elevated);border-radius:12px;padding:16px;margin-bottom:10px;border:1px solid var(--border-dim);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+          <div>
+            <div style="font-weight:600;color:var(--text-primary);font-size:14px;margin-bottom:6px;">${p.nombre}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <span class="badge ${estadoCol}">${p.estado}</span>
+              ${p.precio_total>0?`<span class="badge badge-active">${fmtMoney(p.precio_total)}</span>`:''}
+              ${p.deadline?`<span class="badge badge-gray">📅 ${p.deadline}</span>`:''}
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0;">
+            <button class="btn btn-sm" onclick="showProyectoForm('${clientId}',${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteProyecto('${p.id}')">✕</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:6px;">
+          <span>Avance</span>
+          <span style="color:var(--violet);font-weight:600;">${done} / ${p.total_entregables} entregables · ${pct}%</span>
+        </div>
+        <div style="height:7px;background:var(--bg-card);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--violet-deep),var(--violet-glow));border-radius:4px;transition:.3s;"></div>
+        </div>
+        ${p.descripcion?`<div style="font-size:11px;color:var(--text-secondary);margin-top:8px;">${p.descripcion}</div>`:''}
+      </div>`;
+    });
+  }
+  html += '</div>';
+  return html;
+}
+
+function showProyectoForm(clientId, d={}) {
+  const estadoOpts = ['activo','pausado','completado','cancelado'].map(s=>`<option value="${s}"${(d.estado||'activo')===s?' selected':''}>${s}</option>`).join('');
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">${d.id?'Editar proyecto':'Nuevo proyecto'}</div>
+    <form class="form-grid" onsubmit="submitProyecto(event,'${d.id||''}','${clientId}')">
+      <div class="form-group full"><label>Nombre *</label><input name="nombre" value="${(d.nombre||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack 10 Videos Mayo"></div>
+      <div class="form-group full"><label>Descripción</label><textarea name="descripcion">${d.descripcion||''}</textarea></div>
+      <div class="form-group"><label>Total entregables contratados</label><input name="total_entregables" type="number" value="${d.total_entregables||0}" min="0"></div>
+      <div class="form-group"><label>Precio total (USD)</label><input name="precio_total" type="number" step="0.01" value="${d.precio_total||0}"></div>
+      <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${d.deadline||''}"></div>
+      <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
+      <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitProyecto(e, id, clientId) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.total_entregables = parseInt(f.total_entregables)||0;
+  f.precio_total = parseFloat(f.precio_total)||0;
+  if (!f.deadline) f.deadline = null;
+  const cid = clientId || S.projects.find(x=>x.id===id)?.client_id;
+  if (!id) f.client_id = cid;
+  try {
+    if (id) {
+      await dbUpdate('projects', id, f);
+      const i = S.projects.findIndex(x=>x.id===id);
+      if(i>-1) S.projects[i] = {...S.projects[i],...f,id};
+      toast('Proyecto actualizado');
+    } else {
+      const r = await dbInsert('projects', f);
+      S.projects.unshift(r);
+      toast('Proyecto creado');
+    }
+    closeModal('modal-form');
+    if (cid) openFicha(cid);
+  } catch(err) { toast(err.message,'error'); }
+}
+
+async function deleteProyecto(id) {
+  if(!confirm('¿Eliminar este proyecto? Los entregables vinculados quedarán sin proyecto.')) return;
+  const cid = S.projects.find(x=>x.id===id)?.client_id;
+  try {
+    const linked = S.deliverables.filter(d => d.project_id === id);
+    if (linked.length) {
+      await Promise.all(linked.map(d => dbUpdate('deliverables', d.id, {project_id: null})));
+      linked.forEach(d => d.project_id = null);
+    }
+    await dbDelete('projects', id);
+    S.projects = S.projects.filter(x=>x.id!==id);
+    toast('Proyecto eliminado');
+    if (cid) openFicha(cid);
+  } catch(e) { toast(e.message,'error'); }
 }
 
 function showServicioForm(d={}) {
