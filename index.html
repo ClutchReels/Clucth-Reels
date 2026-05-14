@@ -1567,11 +1567,14 @@ function renderSemana() {
 function renderClientes() {
   if(!S.clients.length){document.getElementById('clientes-grid').innerHTML='<div class="empty-state">Sin clientes. Agregá el primero.</div>';return;}
   document.getElementById('clientes-grid').innerHTML = S.clients.map(c=>{
-    const proj = S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado' && p.estado !== 'finalizado');
+    // Prioriza proyecto activo, si no hay muestra el más reciente (excluye solo cancelado)
+    const proj = S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado' && p.estado !== 'finalizado')
+              || S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado');
     let progHtml;
     if (proj) {
-      const total = parseInt(proj.cantidad_total) || 1;
-      const done = S.deliverables.filter(d => d.project_id === proj.id && d.estado === 'Finalizado').length;
+      const allLinked = S.deliverables.filter(d => d.project_id === proj.id);
+      const total = parseInt(proj.cantidad_total) || allLinked.length || 1;
+      const done = allLinked.filter(d => d.estado === 'Finalizado').length;
       const pct = Math.round((done / total) * 100);
       const barColor = pct >= 80 ? 'var(--success)' : 'var(--violet)';
       progHtml = `<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:4px;">
