@@ -321,7 +321,7 @@ input[type=date]{color-scheme:dark;}
   <div class="sidebar-stats">
     <div class="badge-stat"><div class="number" id="sc-clientes">0</div><div class="label">clientes activos</div></div>
     <div class="badge-stat"><div class="number" id="sc-entregables">0</div><div class="label">entregables</div></div>
-    <div class="badge-stat"><div class="number" id="sc-mrr">$0</div><div class="label">MRR</div></div>
+    <div class="badge-stat"><div class="number" id="sc-mrr">€0</div><div class="label">MRR</div></div>
   </div>
 </aside>
 
@@ -585,7 +585,7 @@ function clientName(id){ const c = S.clients.find(x=>x.id===id); return c ? c.na
 function memberName(id){ const m = S.teamMembers.find(x=>x.id===id); return m ? m.nombre : '—'; }
 function isoToday(){ return new Date().toISOString().slice(0,10); }
 function isoDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function fmtMoney(n){ return '$' + (Number(n)||0).toLocaleString('es-AR'); }
+function fmtMoney(n){ return '€' + (Number(n)||0).toLocaleString('es-ES'); }
 function fmtShort(d){ const dt=new Date(d+'T12:00:00'); return `${dt.getDate()} ${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][dt.getMonth()]}`; }
 
 // ════════════════════════════════════
@@ -695,7 +695,7 @@ function showClienteForm(d={}) {
       <div class="form-group"><label>Industria</label><input name="industria" value="${d.industria||''}"></div>
       <div class="form-group"><label>Mercado</label><input name="mercado" value="${d.mercado||''}"></div>
       <div class="form-group"><label>Equipo</label><input name="equipo" value="${d.equipo||''}"></div>
-      <div class="form-group"><label>Ingreso mensual (USD)</label><input name="ingreso_mensual" type="number" value="${d.ingreso_mensual||0}"></div>
+      <div class="form-group"><label>Ingreso mensual (EUR)</label><input name="ingreso_mensual" type="number" value="${d.ingreso_mensual||0}"></div>
       <div class="form-group"><label>Pipeline</label><select name="pipeline"><option>Prospecto</option><option>Incorporación</option><option${d.pipeline==='Activo'?' selected':''}>Activo</option><option>Riesgo</option><option>Perdido</option></select></div>
       <div class="form-group"><label>Responsable por defecto</label><select name="default_team_member_id"><option value="">Sin asignar</option>${memberOptsHtml(d.default_team_member_id)}</select></div>
       <div class="form-group full"><label>Estrategia</label><input name="estrategia" value="${d.estrategia||''}"></div>
@@ -741,7 +741,7 @@ function showLeadForm(d={}) {
       <div class="form-group"><label>Instagram</label><input name="instagram" value="${d.instagram||''}"></div>
       <div class="form-group"><label>Industria</label><input name="industria" value="${d.industria||''}"></div>
       <div class="form-group"><label>Etapa</label><select name="stage">${stageOpts}</select></div>
-      <div class="form-group"><label>Valor estimado (USD)</label><input name="valor_estimado" type="number" value="${d.valor_estimado||0}"></div>
+      <div class="form-group"><label>Valor estimado (EUR)</label><input name="valor_estimado" type="number" value="${d.valor_estimado||0}"></div>
       <div class="form-group"><label>Origen</label><input name="origen" value="${d.origen||''}"></div>
       <div class="form-group full"><label>Próxima acción</label><input name="proxima_accion" value="${d.proxima_accion||''}"></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
@@ -791,7 +791,7 @@ function showEntregableForm(d={}) {
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${dline}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group"><label>Horas estimadas</label><input name="horas_estimadas" type="number" step="0.5" value="${d.horas_estimadas||0}"></div>
-      <div class="form-group"><label>Precio (USD) <span style="color:var(--text-muted);font-size:10px;">editable por cliente</span></label><input name="precio_unitario" id="ent-precio" type="number" step="0.01" value="${d.precio_unitario||0}"></div>
+      <div class="form-group"><label>Precio (EUR) <span style="color:var(--text-muted);font-size:10px;">editable por cliente</span></label><input name="precio_unitario" id="ent-precio" type="number" step="0.01" value="${d.precio_unitario||0}"></div>
       <div class="form-group full"><label>Feedback / notas</label><input name="feedback" value="${d.feedback||''}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
@@ -862,8 +862,8 @@ function showEquipoForm(d={}) {
       <div class="form-group"><label>Nombre *</label><input name="nombre" value="${d.nombre||''}" required></div>
       <div class="form-group"><label>Rol</label><select name="rol">${rolOpts}</select></div>
       <div class="form-group"><label>Tipo</label><select name="tipo"><option value="empleado"${d.tipo==='empleado'?' selected':''}>Empleado</option><option value="freelancer"${d.tipo==='freelancer'?' selected':''}>Freelancer</option></select></div>
-      <div class="form-group"><label>Rate por hora (USD)</label><input name="rate_hora" type="number" step="0.5" value="${d.rate_hora||0}"></div>
-      <div class="form-group"><label>Sueldo mensual (USD)</label><input name="sueldo_mensual" type="number" value="${d.sueldo_mensual||0}"></div>
+      <div class="form-group"><label>Rate por hora (EUR)</label><input name="rate_hora" type="number" step="0.5" value="${d.rate_hora||0}"></div>
+      <div class="form-group"><label>Sueldo mensual (EUR)</label><input name="sueldo_mensual" type="number" value="${d.sueldo_mensual||0}"></div>
       <div class="form-group"><label>Capacidad semanal (hs)</label><input name="capacidad_semanal" type="number" value="${d.capacidad_semanal||40}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
@@ -908,7 +908,7 @@ function showFacturaForm(d={}) {
         <div id="fac-ents-list" style="display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;padding:10px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border-dim);margin-top:6px;"></div>
       </div>
       <div class="form-group full"><label>Concepto *</label><input name="concepto" id="fac-concepto" value="${d.concepto||''}" required></div>
-      <div class="form-group"><label>Monto (USD)</label><input name="monto" id="fac-monto" type="number" value="${d.monto||0}"></div>
+      <div class="form-group"><label>Monto (EUR)</label><input name="monto" id="fac-monto" type="number" value="${d.monto||0}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group"><label>Fecha vencimiento</label><input name="fecha_vencimiento" type="date" value="${d.fecha_vencimiento||''}"></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
@@ -1002,7 +1002,7 @@ function showEgresoForm(d={}) {
     <form class="form-grid" onsubmit="submitEgreso(event,'${d.id||''}')">
       <div class="form-group full"><label>Concepto *</label><input name="concepto" value="${d.concepto||''}" required></div>
       <div class="form-group"><label>Categoría</label><select name="categoria">${catOpts}</select></div>
-      <div class="form-group"><label>Monto (USD)</label><input name="monto" type="number" value="${d.monto||0}"></div>
+      <div class="form-group"><label>Monto (EUR)</label><input name="monto" type="number" value="${d.monto||0}"></div>
       <div class="form-group"><label>Fecha</label><input name="fecha" type="date" value="${d.fecha||isoToday()}"></div>
       <div class="form-group"><label>Recurrente</label><select name="recurrente"><option value="false">No</option><option value="true"${d.recurrente?' selected':''}>Sí</option></select></div>
       <div class="form-group"><label>Miembro del equipo</label><select name="team_member_id"><option value="">N/A</option>${memberOptsHtml(d.team_member_id)}</select></div>
@@ -1040,7 +1040,7 @@ function showTransaccionForm(d={}) {
       <div class="form-group"><label>Tipo</label><select name="tipo"><option value="ingreso"${d.tipo==='ingreso'?' selected':''}>Ingreso</option><option value="egreso"${d.tipo==='egreso'?' selected':''}>Egreso</option></select></div>
       <div class="form-group"><label>Fecha</label><input name="fecha" type="date" value="${d.fecha||isoToday()}"></div>
       <div class="form-group full"><label>Descripción *</label><input name="descripcion" value="${d.descripcion||''}" required></div>
-      <div class="form-group"><label>Monto (USD)</label><input name="monto" type="number" value="${d.monto||0}"></div>
+      <div class="form-group"><label>Monto (EUR)</label><input name="monto" type="number" value="${d.monto||0}"></div>
       <div class="form-group"><label>Categoría</label><input name="categoria" value="${d.categoria||''}"></div>
       <div class="form-group"><label>Método</label><input name="metodo" value="${d.metodo||''}"></div>
       <div class="form-group"><label>Cliente</label><select name="client_id"><option value="">N/A</option>${clienteOptsHtml(d.client_id)}</select></div>
@@ -1289,7 +1289,7 @@ function showProyectoForm(clientId, d={}) {
       <div class="form-group full"><label>Nombre del proyecto *</label><input name="nombre" id="proy-nombre" value="${(d.nombre||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack 10 Reels Mayo"></div>
       <div class="form-group full"><label>Descripción</label><textarea name="descripcion">${d.descripcion||''}</textarea></div>
       <div class="form-group"><label>Cantidad contratada</label><input name="total_entregables" id="proy-total" type="number" value="${d.total_entregables||0}" min="0" oninput="recalcProyectoPrecio()"></div>
-      <div class="form-group"><label>Precio total (USD)</label><input name="precio_total" id="proy-precio" type="number" step="0.01" value="${d.precio_total||0}"></div>
+      <div class="form-group"><label>Precio total (EUR)</label><input name="precio_total" id="proy-precio" type="number" step="0.01" value="${d.precio_total||0}"></div>
       <div class="form-group"><label>Deadline</label><input name="deadline" type="date" value="${d.deadline||''}"></div>
       <div class="form-group"><label>Estado</label><select name="estado">${estadoOpts}</select></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
@@ -1389,7 +1389,7 @@ function showServicioForm(d={}) {
       <div class="form-group full"><label>Nombre del servicio *</label><input name="name" value="${d.name||''}" required placeholder="Ej: Edición de Reel corto"></div>
       <div class="form-group full"><label>Descripción</label><textarea name="description" placeholder="Explicá qué incluye este servicio, cuándo aplica, qué entrega...">${d.description||''}</textarea></div>
       <div class="form-group"><label>Formato asociado</label><select name="formato">${fmtOpts}</select></div>
-      <div class="form-group"><label>Precio base (USD)</label><input name="base_price" type="number" step="0.01" value="${d.base_price||0}" placeholder="0"></div>
+      <div class="form-group"><label>Precio base (EUR)</label><input name="base_price" type="number" step="0.01" value="${d.base_price||0}" placeholder="0"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
@@ -1476,7 +1476,7 @@ function editarPaquete(id) {
     <form class="form-grid" onsubmit="submitPaquete(event,'${id}')">
       <div class="form-group full"><label>Nombre</label><input name="name" value="${(p.name||'').replace(/"/g,'&quot;')}" required></div>
       <div class="form-group full"><label>Descripción</label><textarea name="description">${p.description||''}</textarea></div>
-      <div class="form-group"><label>Precio mensual (USD)</label><input name="price" type="number" step="0.01" value="${p.price||0}" required></div>
+      <div class="form-group"><label>Precio mensual (EUR)</label><input name="price" type="number" step="0.01" value="${p.price||0}" required></div>
       <div class="form-group"><label>Entregables por mes</label><input name="deliverables_per_month" type="number" value="${p.deliverables_per_month||0}"></div>
       <div class="form-group full"><label>Qué incluye (uno por línea)</label><textarea name="services" rows="5">${svcs.join('\n')}</textarea></div>
       <div class="form-actions full">
