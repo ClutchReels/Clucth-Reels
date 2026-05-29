@@ -563,7 +563,7 @@ input[type=date]{color-scheme:dark;}
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>SERVICIO</th><th>DESCRIPCIÓN</th><th>FORMATO</th><th>PRECIO BASE</th><th></th></tr></thead>
+        <thead><tr><th>SERVICIO</th><th>DESCRIPCIÓN</th><th>FORMATO</th><th>PRECIO BASE</th><th>ENTREGABLES</th><th></th></tr></thead>
         <tbody id="svc-tbody"></tbody>
       </table>
     </div>
@@ -736,8 +736,8 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ════════════════════════════════════
 const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[], userProfiles:[], metricsHistory:[] };
 
-const FORMATOS = ['Video','Reel','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
-const ICONS_F  = {Video:'🎬',Reel:'📱',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
+const FORMATOS = ['Video','Reel','VSL','Anuncio','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
+const ICONS_F  = {Video:'🎬',Reel:'📱',VSL:'🎥',Anuncio:'📣',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
 const ESTADOS  = ['Idea','Aprobación guión','En edición','Revisión interna','Enviado','Correcciones','Finalizado'];
 const ROLES    = ['Editor de video','Motion designer','Fotógrafo','Copywriter','Community manager','Estratega','Account manager','Paid specialist'];
 const STAGES_CRM = ['Prospecto','Contactado','Propuesta enviada','Negociación','Ganado','Perdido'];
@@ -1653,13 +1653,32 @@ async function deleteProyecto(id) {
 
 function showServicioForm(d={}) {
   const fmtOpts = ['',  ...FORMATOS].map(f=>`<option value="${f}"${d.formato===f?' selected':''}>${f||'— Sin formato'}</option>`).join('');
+  _pkgTpls = parseTpls(d.deliverable_templates);
   document.getElementById('form-body').innerHTML = `
     <div class="modal-title">${d.id?'Editar servicio':'Nuevo servicio'}</div>
     <form class="form-grid" onsubmit="submitServicio(event,'${d.id||''}')">
-      <div class="form-group full"><label>Nombre del servicio *</label><input name="name" value="${d.name||''}" required placeholder="Ej: Edición de Reel corto"></div>
-      <div class="form-group full"><label>Descripción</label><textarea name="description" placeholder="Explicá qué incluye este servicio, cuándo aplica, qué entrega...">${d.description||''}</textarea></div>
-      <div class="form-group"><label>Formato asociado</label><select name="formato">${fmtOpts}</select></div>
+      <div class="form-group full"><label>Nombre del servicio *</label><input name="name" value="${(d.name||'').replace(/"/g,'&quot;')}" required placeholder="Ej: Pack VSL Completo"></div>
+      <div class="form-group full"><label>Descripción</label><textarea name="description" placeholder="Explicá qué incluye, cuándo aplica, qué entrega...">${d.description||''}</textarea></div>
+      <div class="form-group"><label>Formato principal</label><select name="formato">${fmtOpts}</select></div>
       <div class="form-group"><label>Precio base (EUR)</label><input name="base_price" type="number" step="0.01" value="${d.base_price||0}" placeholder="0"></div>
+
+      <div class="form-group full" style="grid-column:1/-1;">
+        <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span>Entregables incluidos <span style="font-size:10px;color:var(--text-muted);">(se crean automáticamente al dar de alta el proyecto)</span></span>
+          <button type="button" class="btn btn-sm btn-primary" onclick="addPkgTpl()" style="padding:4px 12px;font-size:11px;">+ Formato</button>
+        </label>
+        <div style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:10px;padding:12px;">
+          <div style="display:grid;grid-template-columns:130px 60px 1fr 80px auto;gap:8px;margin-bottom:8px;">
+            <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Formato</span>
+            <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Cant.</span>
+            <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">Descripción</span>
+            <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">€/u</span>
+            <span></span>
+          </div>
+          <div id="pkg-tpl-rows">${renderPkgTplRows()}</div>
+        </div>
+      </div>
+
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
@@ -1672,6 +1691,7 @@ async function submitServicio(e, id) {
   const f = Object.fromEntries(new FormData(e.target));
   f.base_price = parseFloat(f.base_price)||0;
   if (!f.formato) f.formato = null;
+  f.deliverable_templates = _pkgTpls;
   try {
     if (id) {
       await dbUpdate('service_catalog', id, f);
@@ -1728,16 +1748,23 @@ function renderServicios() {
 
   // Servicios individuales
   document.getElementById('svc-tbody').innerHTML = S.serviceCatalog.length
-    ? S.serviceCatalog.map(s=>`<tr>
-        <td style="color:var(--text-primary);font-weight:500;">${s.name}</td>
-        <td style="color:var(--text-secondary);max-width:280px;font-size:12px;">${s.description||'—'}</td>
-        <td>${s.formato ? `${iF(s.formato)} ${s.formato}` : '—'}</td>
-        <td style="font-weight:600;color:var(--violet);">${fmtMoney(s.base_price)}</td>
-        <td style="display:flex;gap:5px;">
-          <button class="btn btn-sm" onclick="openModal('servicio-form',${JSON.stringify(s).replace(/"/g,'&quot;')})">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteServicio('${s.id}')">✕</button>
-        </td>
-      </tr>`).join('')
+    ? S.serviceCatalog.map(s=>{
+        const sTpls = parseTpls(s.deliverable_templates);
+        const tplBadges = sTpls.length
+          ? sTpls.map(t=>`<span style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--violet-glow);font-size:10px;font-weight:600;padding:2px 7px;border-radius:12px;white-space:nowrap;">${iF(t.formato)} ${t.tipo||t.formato} ×${t.cantidad}</span>`).join(' ')
+          : '<span style="font-size:11px;color:var(--text-muted);">—</span>';
+        return `<tr>
+          <td style="color:var(--text-primary);font-weight:500;">${s.name}</td>
+          <td style="color:var(--text-secondary);max-width:200px;font-size:12px;">${s.description||'—'}</td>
+          <td>${s.formato ? `${iF(s.formato)} ${s.formato}` : '—'}</td>
+          <td style="font-weight:600;color:var(--violet);">${fmtMoney(s.base_price)}</td>
+          <td style="max-width:200px;"><div style="display:flex;flex-wrap:wrap;gap:4px;">${tplBadges}</div></td>
+          <td style="display:flex;gap:5px;">
+            <button class="btn btn-sm" onclick="openModal('servicio-form',${JSON.stringify(s).replace(/"/g,'&quot;')})">✏️</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteServicio('${s.id}')">✕</button>
+          </td>
+        </tr>`;
+      }).join('')
     : '<tr><td colspan="5" class="empty-state">Sin servicios. Agregá el primero.</td></tr>';
 }
 
