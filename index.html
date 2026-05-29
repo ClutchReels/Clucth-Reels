@@ -391,32 +391,31 @@ input[type=date]{color-scheme:dark;}
     <button class="btn btn-primary" onclick="openModal('entregable-form')">➕ Nuevo entregable</button>
   </div>
   <div class="sub-tabs" id="prod-tabs">
-    <div class="sub-tab active" onclick="switchProdTab(this,'prod-kanban-panel')">🎯 Pipeline</div>
-    <div class="sub-tab" onclick="switchProdTab(this,'prod-tabla-panel')">📋 Tabla detallada</div>
+    <div class="sub-tab active" onclick="switchProdTab(this,'prod-tabla-panel')">📋 Tabla</div>
+    <div class="sub-tab" onclick="switchProdTab(this,'prod-kanban-panel')">🎯 Pipeline</div>
     <div class="sub-tab" onclick="switchProdTab(this,'prod-paquetes-panel')">📦 Packs por mes</div>
-    <div class="sub-tab" onclick="switchProdTab(this,'prod-proyectos-panel')">📁 Proyectos</div>
+  </div>
+
+  <!-- TABLA DETALLADA (primero y default) -->
+  <div class="sub-panel active" id="prod-tabla-panel">
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+      <select id="prod-fil-cliente-t" onchange="renderTablaProd()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los clientes</option></select>
+      <select id="prod-fil-miembro-t" onchange="renderTablaProd()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los responsables</option></select>
+      <select id="prod-fil-estado-t" onchange="renderTablaProd()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los estados</option></select>
+      <button class="btn btn-sm" onclick="limpiarFiltrosTabla()" style="padding:5px 10px;font-size:11px;">✕</button>
+    </div>
+    <div id="prod-acordeon"></div>
   </div>
 
   <!-- PIPELINE (kanban) -->
-  <div class="sub-panel active" id="prod-kanban-panel">
-    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <select id="prod-fil-cliente" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los clientes</option></select>
-      <select id="prod-fil-miembro" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los responsables</option></select>
-      <select id="prod-fil-estado" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los estados</option></select>
-      <button class="btn btn-sm" onclick="limpiarFiltrosProd()">✕ Limpiar</button>
+  <div class="sub-panel" id="prod-kanban-panel">
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+      <select id="prod-fil-cliente" onchange="renderProduccion()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los clientes</option></select>
+      <select id="prod-fil-miembro" onchange="renderProduccion()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los responsables</option></select>
+      <select id="prod-fil-estado" onchange="renderProduccion()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los estados</option></select>
+      <button class="btn btn-sm" onclick="limpiarFiltrosProd()" style="padding:5px 10px;font-size:11px;">✕</button>
     </div>
     <div class="kanban" id="prod-kanban"></div>
-  </div>
-
-  <!-- TABLA DETALLADA -->
-  <div class="sub-panel" id="prod-tabla-panel">
-    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-      <select id="prod-fil-cliente-t" class="cal-filter-select" onchange="renderTablaProd()"><option value="">Todos los clientes</option></select>
-      <select id="prod-fil-miembro-t" class="cal-filter-select" onchange="renderTablaProd()"><option value="">Todos los responsables</option></select>
-      <select id="prod-fil-estado-t" class="cal-filter-select" onchange="renderTablaProd()"><option value="">Todos los estados</option></select>
-      <button class="btn btn-sm" onclick="limpiarFiltrosTabla()">✕ Limpiar</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>TÍTULO</th><th>FORMATO</th><th>CLIENTE</th><th>RESPONSABLE</th><th>DEADLINE</th><th>ESTADO</th><th># PROYECTO</th><th>COSTO</th><th>COBRO</th><th>FEEDBACK</th><th></th></tr></thead><tbody id="prod-tbody"></tbody></table></div>
   </div>
 
   <!-- PACKS POR MES -->
@@ -424,10 +423,6 @@ input[type=date]{color-scheme:dark;}
     <div id="paquetes-mes-content" style="margin-top:8px;"></div>
   </div>
 
-  <!-- PROYECTOS -->
-  <div class="sub-panel" id="prod-proyectos-panel">
-    <div id="proyectos-panel-content" style="margin-top:8px;"></div>
-  </div>
 </div>
 
 <!-- EQUIPO -->
@@ -2069,8 +2064,8 @@ function switchProdTab(tab, panelId) {
   tab.classList.add('active');
   document.getElementById(panelId).classList.add('active');
   if      (panelId === 'prod-tabla-panel')    renderTablaProd();
+  else if (panelId === 'prod-kanban-panel')   renderProduccion();
   else if (panelId === 'prod-paquetes-panel') renderPaquetesMes();
-  else if (panelId === 'prod-proyectos-panel') renderProyectosPanel();
 }
 
 function limpiarFiltrosTabla() {
@@ -3057,6 +3052,7 @@ function renderAll() {
   renderDashboard();
   renderClientes();
   renderCRM();
+  renderTablaProd();
   renderProduccion();
   renderEquipo();
   renderFinanzas();
