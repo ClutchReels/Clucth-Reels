@@ -305,17 +305,21 @@ input[type=date]{color-scheme:dark;}
     </div>
     <div class="sidebar-user-logout" onclick="doLogout()" title="Cerrar sesión">⏏</div>
   </div>
+  <button onclick="openSearch()" style="display:flex;align-items:center;gap:8px;width:100%;background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:10px;padding:8px 12px;color:var(--text-muted);font-size:12px;font-family:inherit;cursor:pointer;margin-bottom:12px;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--border-dim)'">
+    <span>🔍</span><span style="flex:1;text-align:left;">Buscar…</span><kbd style="font-size:9px;background:var(--bg-dark);border:1px solid var(--border-dim);border-radius:4px;padding:1px 5px;">Ctrl K</kbd>
+  </button>
   <nav class="nav-clutch">
     <div class="nav-item active" data-panel="dashboard">📊 Tablero</div>
     <div class="nav-item" data-panel="clientes">👤 Clientes</div>
-    <div class="nav-item" data-panel="crm">🤝 CRM</div>
-    <div class="nav-item" data-panel="produccion">🎬 Producción</div>
+    <div class="nav-item" data-panel="crm">🤝 CRM <span class="nav-badge" id="badge-crm" style="display:none;"></span></div>
+    <div class="nav-item" data-panel="produccion">🎬 Producción <span class="nav-badge" id="badge-prod" style="display:none;"></span></div>
     <div class="nav-item" data-panel="equipo">🧑‍💻 Equipo</div>
-    <div class="nav-item" data-panel="finanzas">💰 Finanzas</div>
+    <div class="nav-item" data-panel="finanzas">💰 Finanzas <span class="nav-badge" id="badge-fin" style="display:none;"></span></div>
     <div class="nav-item" data-panel="calendario">📅 Calendario</div>
     <div class="nav-item" data-panel="rendimiento">📈 Rendimiento</div>
     <div class="nav-item" data-panel="roadmap">🗺 Roadmap</div>
     <div class="nav-item" data-panel="servicios">📦 Servicios</div>
+    <div class="nav-item" data-panel="reportes">📋 Reportes</div>
     <div class="nav-item nav-admin" data-panel="usuarios">👥 Usuarios</div>
   </nav>
   <div class="sidebar-stats">
@@ -341,6 +345,16 @@ input[type=date]{color-scheme:dark;}
     <span id="dash-rango" style="font-size:11px;color:var(--text-muted);"></span>
   </div>
   <div class="semana-grid" id="dash-semana"></div>
+  <div class="grid-2" style="margin-bottom:28px;">
+    <div class="widget" id="dash-mrr-chart-wrap">
+      <div class="widget-title">📊 INGRESOS POR MES</div>
+      <div id="dash-mrr-chart" style="margin-top:12px;"></div>
+    </div>
+    <div class="widget" id="dash-clientes-chart-wrap">
+      <div class="widget-title">💎 MRR POR CLIENTE</div>
+      <div id="dash-clientes-chart" style="margin-top:12px;"></div>
+    </div>
+  </div>
   <div class="clutch-quote">"la taza que buscas cada mañana." — clutch reels</div>
 </div>
 
@@ -348,7 +362,12 @@ input[type=date]{color-scheme:dark;}
 <div id="clientes" class="panel">
   <div class="panel-header">
     <div><div class="eyebrow">cartera activa</div><div class="section-title" style="margin-bottom:0;">Clientes</div></div>
-    <button class="btn btn-primary" onclick="openModal('cliente-form')">➕ Nuevo cliente</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input id="cli-buscar" placeholder="🔍 Buscar…" oninput="renderClientes()"
+        style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:8px;color:var(--text-primary);padding:7px 12px;font-size:12px;font-family:inherit;width:160px;outline:none;">
+      <button id="cli-arch-btn" class="btn btn-sm" onclick="toggleArchivados()" style="border-color:var(--text-muted);color:var(--text-muted);">Ver archivados</button>
+      <button class="btn btn-primary" onclick="openModal('cliente-form')">➕ Nuevo cliente</button>
+    </div>
   </div>
   <div class="grid-3" id="clientes-grid"></div>
 </div>
@@ -378,10 +397,16 @@ input[type=date]{color-scheme:dark;}
   </div>
 
   <div class="sub-panel active" id="prod-kanban-panel">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <select id="prod-fil-cliente" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los clientes</option></select>
+      <select id="prod-fil-miembro" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los responsables</option></select>
+      <select id="prod-fil-estado" class="cal-filter-select" onchange="renderProduccion()"><option value="">Todos los estados</option></select>
+      <button class="btn btn-sm" onclick="limpiarFiltrosProd()">✕ Limpiar</button>
+    </div>
     <div class="kanban" id="prod-kanban"></div>
     <div class="divider"></div>
     <div class="eyebrow" style="margin-bottom:12px;">tabla detallada</div>
-    <div class="table-wrap"><table><thead><tr><th>TÍTULO</th><th>FORMATO</th><th>CLIENTE</th><th>RESPONSABLE</th><th>DEADLINE</th><th>ESTADO</th><th>HS EST.</th><th>COSTO</th><th>COBRO</th><th>FEEDBACK</th><th></th></tr></thead><tbody id="prod-tbody"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>TÍTULO</th><th>FORMATO</th><th>CLIENTE</th><th>RESPONSABLE</th><th>DEADLINE</th><th>ESTADO</th><th># PROYECTO</th><th>COSTO</th><th>COBRO</th><th>FEEDBACK</th><th></th></tr></thead><tbody id="prod-tbody"></tbody></table></div>
   </div>
 
   <div class="sub-panel" id="prod-paquetes-panel">
@@ -399,8 +424,18 @@ input[type=date]{color-scheme:dark;}
     <div><div class="eyebrow">equipo de trabajo</div><div class="section-title" style="margin-bottom:0;">Equipo</div></div>
     <button class="btn btn-primary" onclick="openModal('equipo-form')">➕ Nuevo miembro</button>
   </div>
-  <div class="table-wrap"><table><thead><tr><th>NOMBRE</th><th>ROL</th><th>TIPO</th><th>COSTO/H</th><th>SUELDO</th><th>CAP. SEM.</th><th>ENTREGABLES</th><th>ATRASOS</th><th>CALIDAD</th><th></th></tr></thead><tbody id="equipo-tbody"></tbody></table></div>
-  <div style="margin-top:28px;">
+  <div class="sub-tabs" id="eq-tabs">
+    <div class="sub-tab active" onclick="switchEqTab(this,'eq-panel-tabla')">👥 Miembros</div>
+    <div class="sub-tab" onclick="switchEqTab(this,'eq-panel-carga')">🔋 Carga de trabajo</div>
+    <div class="sub-tab" onclick="switchEqTab(this,'eq-panel-payroll')">💸 Payroll</div>
+  </div>
+  <div class="sub-panel active" id="eq-panel-tabla">
+    <div class="table-wrap"><table><thead><tr><th>NOMBRE</th><th>ROL</th><th>TIPO</th><th>COSTO/H</th><th>SUELDO</th><th>CAP. SEM.</th><th>ENTREGABLES</th><th>ATRASOS</th><th>CALIDAD</th><th></th></tr></thead><tbody id="equipo-tbody"></tbody></table></div>
+  </div>
+  <div class="sub-panel" id="eq-panel-carga">
+    <div id="equipo-carga"></div>
+  </div>
+  <div class="sub-panel" id="eq-panel-payroll">
     <div class="eyebrow" style="margin-bottom:16px;">💸 pagos del mes</div>
     <div class="grid-3" id="payroll-cards"></div>
   </div>
@@ -408,8 +443,14 @@ input[type=date]{color-scheme:dark;}
 
 <!-- FINANZAS -->
 <div id="finanzas" class="panel">
-  <div class="eyebrow">ingresos · egresos · cobranzas</div>
-  <div class="section-title">Finanzas</div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:8px;">
+    <div><div class="eyebrow">ingresos · egresos · cobranzas</div><div class="section-title" style="margin-bottom:0;">Finanzas</div></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Período</label>
+      <input type="month" id="fin-periodo" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:8px;color:var(--text-primary);padding:6px 10px;font-size:12px;font-family:inherit;" onchange="renderFinanzas()">
+      <button class="btn btn-sm" onclick="document.getElementById('fin-periodo').value='';renderFinanzas()">Todos</button>
+    </div>
+  </div>
   <div class="grid-4" style="margin-bottom:28px;" id="fin-widgets"></div>
   <div class="sub-tabs">
     <div class="sub-tab active" data-sub="resumen">📊 Resumen</div>
@@ -503,6 +544,9 @@ input[type=date]{color-scheme:dark;}
   </div>
 
   <div class="sub-panel active" id="sub-spaq">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" onclick="showNuevoPaqueteForm()">➕ Nuevo pack</button>
+    </div>
     <div class="grid-3" id="paquetes-grid"></div>
   </div>
 
@@ -515,6 +559,94 @@ input[type=date]{color-scheme:dark;}
         <thead><tr><th>SERVICIO</th><th>DESCRIPCIÓN</th><th>FORMATO</th><th>PRECIO BASE</th><th></th></tr></thead>
         <tbody id="svc-tbody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- REPORTES -->
+<div id="reportes" class="panel">
+  <div class="eyebrow">análisis y exportación</div>
+  <div class="section-title">Reportes</div>
+  <div class="sub-tabs" id="rep-tabs">
+    <div class="sub-tab active" data-sub="rep-resumen">📅 Resumen mensual</div>
+    <div class="sub-tab" data-sub="rep-metricas">📈 Historial métricas</div>
+    <div class="sub-tab" data-sub="rep-exportar">⬇️ Exportar</div>
+  </div>
+
+  <!-- RESUMEN MENSUAL -->
+  <div class="sub-panel active" id="sub-rep-resumen">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+      <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Período</label>
+      <input type="month" id="rep-mes" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:8px;color:var(--text-primary);padding:7px 12px;font-size:13px;font-family:inherit;" onchange="renderResumenMensual()">
+      <button class="btn" onclick="setRepMesHoy()">Este mes</button>
+    </div>
+    <div class="grid-4" id="rep-kpis" style="margin-bottom:28px;"></div>
+    <div class="grid-2" style="margin-bottom:28px;">
+      <div class="widget">
+        <div class="widget-title">💼 DETALLE POR CLIENTE</div>
+        <div id="rep-por-cliente" style="margin-top:12px;"></div>
+      </div>
+      <div class="widget">
+        <div class="widget-title">🎬 ENTREGABLES DEL MES</div>
+        <div id="rep-entregables" style="margin-top:12px;font-size:12px;"></div>
+      </div>
+    </div>
+    <div class="widget" style="margin-bottom:20px;">
+      <div class="widget-title">🤝 PIPELINE CRM DEL MES</div>
+      <div id="rep-crm" style="margin-top:12px;font-size:12px;"></div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL MÉTRICAS -->
+  <div class="sub-panel" id="sub-rep-metricas">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <select id="rep-met-cliente" class="cal-filter-select" onchange="renderHistoricoMetricas()" style="min-width:200px;">
+        <option value="">Todos los clientes</option>
+      </select>
+      <button class="btn btn-primary" onclick="openModal('metrica-form')">➕ Cargar métricas</button>
+    </div>
+    <div id="rep-met-content"></div>
+  </div>
+
+  <!-- EXPORTAR -->
+  <div class="sub-panel" id="sub-rep-exportar">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:8px;">
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('clientes')">
+        <div style="font-size:32px;margin-bottom:8px;">👤</div>
+        <div class="widget-title">Clientes</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">nombre, tipo, pipeline, ingreso, industria</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('facturas')">
+        <div style="font-size:32px;margin-bottom:8px;">🧾</div>
+        <div class="widget-title">Facturas / Cobranzas</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">cliente, período, concepto, monto, estado</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('egresos')">
+        <div style="font-size:32px;margin-bottom:8px;">📤</div>
+        <div class="widget-title">Egresos</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">concepto, categoría, fecha, monto</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('entregables')">
+        <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+        <div class="widget-title">Entregables</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">título, formato, cliente, responsable, estado, deadline</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('leads')">
+        <div style="font-size:32px;margin-bottom:8px;">🤝</div>
+        <div class="widget-title">Leads / CRM</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">nombre, empresa, etapa, valor estimado, origen</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
+      <div class="widget" style="text-align:center;cursor:pointer;" onclick="exportCSV('equipo')">
+        <div style="font-size:32px;margin-bottom:8px;">🧑‍💻</div>
+        <div class="widget-title">Equipo</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">nombre, rol, tipo, rate/hora, sueldo</div>
+        <button class="btn btn-primary" style="margin-top:14px;width:100%;">⬇️ Descargar CSV</button>
+      </div>
     </div>
   </div>
 </div>
@@ -558,6 +690,32 @@ input[type=date]{color-scheme:dark;}
   </div>
 </div>
 
+<!-- BÚSQUEDA GLOBAL -->
+<div id="modal-search" class="modal-overlay" onclick="if(event.target===this)closeSearch()">
+  <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:20px;width:min(640px,94vw);padding:0;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--border-dim);">
+      <span style="font-size:18px;">🔍</span>
+      <input id="search-input" placeholder="Buscar clientes, entregables, leads, facturas…" autocomplete="off"
+        style="flex:1;background:none;border:none;outline:none;font-size:15px;color:var(--text-primary);font-family:inherit;"
+        oninput="runSearch(this.value)">
+      <kbd style="font-size:10px;color:var(--text-muted);background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:5px;padding:2px 7px;">ESC</kbd>
+    </div>
+    <div id="search-results" style="max-height:400px;overflow-y:auto;padding:8px 0;"></div>
+  </div>
+</div>
+
+<style>
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--danger);color:#fff;font-size:9px;font-weight:700;border-radius:10px;min-width:16px;height:16px;padding:0 4px;margin-left:6px;line-height:1;}
+.search-group{padding:6px 16px 2px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);font-weight:600;}
+.search-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;transition:background .1s;}
+.search-item:hover{background:rgba(168,85,247,.1);}
+.search-item-icon{width:32px;height:32px;border-radius:8px;background:rgba(168,85,247,.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.search-item-main{font-size:13px;color:var(--text-primary);font-weight:500;}
+.search-item-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
+.carga-bar{height:10px;border-radius:5px;overflow:hidden;background:var(--bg-elevated);margin-top:4px;}
+.carga-fill{height:100%;border-radius:5px;transition:width .3s;}
+</style>
+
 <script>
 // ════════════════════════════════════
 // SUPABASE
@@ -569,7 +727,7 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ════════════════════════════════════
 // STATE
 // ════════════════════════════════════
-const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[] };
+const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[], userProfiles:[], metricsHistory:[] };
 
 const FORMATOS = ['Video','Reel','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
@@ -581,6 +739,45 @@ const CATS_EGR = ['Sueldos','Freelancers','Software','Marketing','Oficina','Prod
 let calState = { mes: new Date().getMonth(), anio: new Date().getFullYear() };
 
 function iF(f){ return ICONS_F[f] || '📦'; }
+
+function getProyectoPos(v) {
+  if (!v.project_id) return null;
+  const proj = S.projects.find(p => p.id === v.project_id);
+  if (!proj) return null;
+  const hermanos = S.deliverables
+    .filter(d => d.project_id === v.project_id)
+    .sort((a,b) => {
+      const da = a.deadline || a.created_at || '';
+      const db = b.deadline || b.created_at || '';
+      return da.localeCompare(db);
+    });
+  const pos   = hermanos.findIndex(d => d.id === v.id) + 1;
+  const total = proj.total_entregables > 0 ? proj.total_entregables : hermanos.length;
+  const done  = hermanos.filter(d => d.estado === 'Finalizado').length;
+  return { pos, total, done, nombre: proj.nombre };
+}
+
+function proyectoNumBadge(v) {
+  const info = getProyectoPos(v);
+  if (!info) return '';
+  return `<span style="flex-shrink:0;font-size:10px;font-weight:700;color:var(--violet);background:rgba(168,85,247,.15);border-radius:6px;padding:2px 6px;white-space:nowrap;">${info.pos}/${info.total}</span>`;
+}
+
+function proyectoNumCell(v) {
+  const info = getProyectoPos(v);
+  if (!info) return '<span style="color:var(--text-muted);">—</span>';
+  const pct = info.total > 0 ? Math.round((info.done / info.total) * 100) : 0;
+  return `<div style="min-width:100px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+      <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;" title="${info.nombre}">${info.nombre}</span>
+      <span style="font-size:11px;font-weight:700;color:var(--violet);flex-shrink:0;margin-left:4px;">#${info.pos}</span>
+    </div>
+    <div style="height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--violet-deep),var(--violet-glow));border-radius:2px;"></div>
+    </div>
+    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;text-align:right;">${info.done}/${info.total} listos</div>
+  </div>`;
+}
 function clientName(id){ const c = S.clients.find(x=>x.id===id); return c ? c.name : '—'; }
 function memberName(id){ const m = S.teamMembers.find(x=>x.id===id); return m ? m.nombre : '—'; }
 function isoToday(){ return new Date().toISOString().slice(0,10); }
@@ -593,7 +790,7 @@ function fmtShort(d){ const dt=new Date(d+'T12:00:00'); return `${dt.getDate()} 
 // ════════════════════════════════════
 async function loadAll() {
   try {
-    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc,pj] = await Promise.all([
+    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc,pj,up,mh] = await Promise.all([
       sb.from('clients').select('*').order('created_at',{ascending:false}),
       sb.from('leads').select('*').order('created_at',{ascending:false}),
       sb.from('deliverables').select('*').order('deadline',{ascending:true}),
@@ -605,6 +802,8 @@ async function loadAll() {
       sb.from('packages').select('*').eq('active',true).order('price'),
       sb.from('service_catalog').select('*').eq('active',true).order('name'),
       sb.from('projects').select('*').order('created_at',{ascending:false}),
+      sb.from('user_profiles').select('*').order('nombre'),
+      sb.from('metrics_history').select('*').order('periodo',{ascending:false}),
     ]);
     S.clients        = cl.data  || [];
     S.leads          = ld.data  || [];
@@ -617,6 +816,8 @@ async function loadAll() {
     S.packages       = pk.data  || [];
     S.serviceCatalog = sc.data  || [];
     S.projects       = pj.data  || [];
+    S.userProfiles   = up?.data || [];
+    S.metricsHistory = mh?.data || [];
   } catch(e) {
     toast('Error cargando datos: ' + e.message, 'error');
   }
@@ -663,6 +864,7 @@ function openModal(type, data={}) {
   else if (type === 'transaccion-form') showTransaccionForm(data);
   else if (type === 'servicio-form') showServicioForm(data);
   else if (type === 'nuevo-usuario-form') showNuevoUsuarioForm(data);
+  else if (type === 'metrica-form') showMetricaForm(data);
   document.getElementById('modal-form').classList.add('show');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
@@ -700,6 +902,11 @@ function showClienteForm(d={}) {
       <div class="form-group"><label>Responsable por defecto</label><select name="default_team_member_id"><option value="">Sin asignar</option>${memberOptsHtml(d.default_team_member_id)}</select></div>
       <div class="form-group full"><label>Estrategia</label><input name="estrategia" value="${d.estrategia||''}"></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
+      <div class="form-group" style="grid-column:1/-1;margin-top:4px;padding-top:12px;border-top:1px solid var(--border-dim);"><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--violet);">📈 Métricas de rendimiento</span></div>
+      <div class="form-group"><label>Reproducciones totales</label><input name="views" type="number" value="${d.views||0}"></div>
+      <div class="form-group"><label>Retención %</label><input name="retencion" type="number" step="0.1" value="${d.retencion||0}"></div>
+      <div class="form-group"><label>CTR %</label><input name="ctr" type="number" step="0.1" value="${d.ctr||0}"></div>
+      <div class="form-group"><label>Leads generados</label><input name="leads_generados" type="number" value="${d.leads_generados||0}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
@@ -711,6 +918,10 @@ async function submitCliente(e, id) {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target));
   f.ingreso_mensual = parseFloat(f.ingreso_mensual)||0;
+  f.views = parseInt(f.views)||0;
+  f.retencion = parseFloat(f.retencion)||0;
+  f.ctr = parseFloat(f.ctr)||0;
+  f.leads_generados = parseInt(f.leads_generados)||0;
   if (!f.default_team_member_id) f.default_team_member_id = null;
   f.logo_initials = f.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   try {
@@ -743,7 +954,8 @@ function showLeadForm(d={}) {
       <div class="form-group"><label>Etapa</label><select name="stage">${stageOpts}</select></div>
       <div class="form-group"><label>Valor estimado (EUR)</label><input name="valor_estimado" type="number" value="${d.valor_estimado||0}"></div>
       <div class="form-group"><label>Origen</label><input name="origen" value="${d.origen||''}"></div>
-      <div class="form-group full"><label>Próxima acción</label><input name="proxima_accion" value="${d.proxima_accion||''}"></div>
+      <div class="form-group"><label>Próxima acción</label><input name="proxima_accion" value="${d.proxima_accion||''}"></div>
+      <div class="form-group"><label>Fecha próxima acción</label><input name="fecha_proxima_accion" type="date" value="${d.fecha_proxima_accion||''}"></div>
       <div class="form-group full"><label>Notas</label><textarea name="notas">${d.notas||''}</textarea></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
@@ -756,6 +968,7 @@ async function submitLead(e, id) {
   e.preventDefault();
   const f = Object.fromEntries(new FormData(e.target));
   f.valor_estimado = parseFloat(f.valor_estimado)||0;
+  if (!f.fecha_proxima_accion) f.fecha_proxima_accion = null;
   try {
     if (id) {
       await dbUpdate('leads', id, f);
@@ -776,6 +989,7 @@ function showEntregableForm(d={}) {
   const svcOpts = S.serviceCatalog.map(s=>`<option value="${s.id}" data-price="${s.base_price}" data-formato="${s.formato||''}"${d.service_catalog_id===s.id?' selected':''}>${s.name} — ${fmtMoney(s.base_price)}</option>`).join('');
   document.getElementById('form-body').innerHTML = `
     <div class="modal-title">${d.id?'Editar entregable':'Nuevo entregable'}</div>
+    ${!d.id ? `<div style="margin-bottom:14px;"><select id="plantilla-picker" class="cal-filter-select" style="width:100%;" onchange="aplicarPlantilla(this)"><option value="">📋 Usar plantilla guardada…</option>${getPlantillaOpts()}</select></div>` : ''}
     <form class="form-grid" onsubmit="submitEntregable(event,'${d.id||''}')">
       <div class="form-group full"><label>Título *</label><input name="titulo" value="${d.titulo||''}" required></div>
       <div class="form-group full"><label>Servicio del catálogo <span style="color:var(--text-muted);font-size:10px;">(opcional — pre-carga precio)</span></label>
@@ -795,6 +1009,7 @@ function showEntregableForm(d={}) {
       <div class="form-group full"><label>Feedback / notas</label><input name="feedback" value="${d.feedback||''}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="button" class="btn" onclick="guardarComoPlantilla()" style="border-color:var(--violet);color:var(--violet);">💾 Plantilla</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
       </div>
     </form>`;
@@ -865,6 +1080,7 @@ function showEquipoForm(d={}) {
       <div class="form-group"><label>Rate por hora (EUR)</label><input name="rate_hora" type="number" step="0.5" value="${d.rate_hora||0}"></div>
       <div class="form-group"><label>Sueldo mensual (EUR)</label><input name="sueldo_mensual" type="number" value="${d.sueldo_mensual||0}"></div>
       <div class="form-group"><label>Capacidad semanal (hs)</label><input name="capacidad_semanal" type="number" value="${d.capacidad_semanal||40}"></div>
+      <div class="form-group"><label>Calidad (0–5)</label><input name="calidad" type="number" min="0" max="5" step="1" value="${d.calidad||0}"></div>
       <div class="form-actions full">
         <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
         <button type="submit" class="btn btn-primary">Guardar</button>
@@ -878,6 +1094,7 @@ async function submitEquipo(e, id) {
   f.rate_hora = parseFloat(f.rate_hora)||0;
   f.sueldo_mensual = parseFloat(f.sueldo_mensual)||0;
   f.capacidad_semanal = parseInt(f.capacidad_semanal)||40;
+  f.calidad = parseInt(f.calidad)||0;
   try {
     if (id) {
       await dbUpdate('team_members', id, f);
@@ -1097,6 +1314,7 @@ function openFicha(id) {
       <div style="display:flex;flex-direction:column;gap:6px;">
         <button class="btn btn-sm" onclick="closeModal('modal-ficha');openModal('cliente-form',${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Editar</button>
         <button class="btn btn-sm" onclick="copyClientLink('${c.id}')" style="border-color:var(--violet);color:var(--violet);">🔗 Link cliente</button>
+        <button class="btn btn-sm" onclick="archivarCliente('${c.id}',${c.pipeline==='Archivado'})" style="border-color:var(--text-muted);color:var(--text-muted);">${c.pipeline==='Archivado'?'↩ Desarchivar':'📦 Archivar'}</button>
       </div>
     </div>
 
@@ -1549,6 +1767,55 @@ function renderDashboard() {
     <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">ganancia neta del mes</div>`;
 
   renderSemana();
+  renderMRRCharts();
+}
+
+function renderMRRCharts() {
+  // Gráfico 1: ingresos facturados por mes (últimos 6 meses)
+  const byMonth = {};
+  S.invoices.forEach(i => {
+    const m = (i.periodo || (i.fecha_emision||'').slice(0,7) || '').slice(0,7);
+    if (!m) return;
+    byMonth[m] = (byMonth[m]||0) + (parseFloat(i.monto)||0);
+  });
+  const meses = Object.keys(byMonth).sort().slice(-6);
+  const maxVal = Math.max(...meses.map(m=>byMonth[m]), 1);
+  const chartEl = document.getElementById('dash-mrr-chart');
+  if (chartEl) {
+    if (!meses.length) { chartEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Sin facturas aún</div>'; }
+    else {
+      chartEl.innerHTML = `<div style="display:flex;align-items:flex-end;gap:6px;height:80px;">${meses.map(m=>{
+        const h = Math.round((byMonth[m]/maxVal)*76);
+        const label = fmtMes(m).slice(0,3);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <div style="font-size:9px;color:var(--violet);font-weight:600;">${fmtMoney(byMonth[m]).replace('€','')}</div>
+          <div style="width:100%;height:${h}px;background:linear-gradient(180deg,var(--violet-glow),var(--violet-deep));border-radius:4px 4px 0 0;min-height:4px;"></div>
+          <div style="font-size:9px;color:var(--text-muted);">${label}</div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+  // Gráfico 2: MRR por cliente (barras horizontales)
+  const sorted = [...S.clients].filter(c=>c.ingreso_mensual>0).sort((a,b)=>b.ingreso_mensual-a.ingreso_mensual).slice(0,6);
+  const maxC = Math.max(...sorted.map(c=>parseFloat(c.ingreso_mensual)||0), 1);
+  const chartEl2 = document.getElementById('dash-clientes-chart');
+  if (chartEl2) {
+    if (!sorted.length) { chartEl2.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">Sin clientes con ingreso</div>'; }
+    else {
+      chartEl2.innerHTML = sorted.map(c=>{
+        const pct = Math.round(((parseFloat(c.ingreso_mensual)||0)/maxC)*100);
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+            <span style="color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">${c.name}</span>
+            <span style="color:var(--violet);font-weight:600;">${fmtMoney(c.ingreso_mensual)}</span>
+          </div>
+          <div style="height:6px;background:var(--bg-elevated);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--violet-deep),var(--violet-glow));border-radius:3px;"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
 function renderSemana() {
@@ -1580,8 +1847,11 @@ function renderSemana() {
 // RENDER CLIENTES
 // ════════════════════════════════════
 function renderClientes() {
-  if(!S.clients.length){document.getElementById('clientes-grid').innerHTML='<div class="empty-state">Sin clientes. Agregá el primero.</div>';return;}
-  document.getElementById('clientes-grid').innerHTML = S.clients.map(c=>{
+  const busq = (document.getElementById('cli-buscar')?.value || '').toLowerCase();
+  let lista = S.clients.filter(c => mostrarArchivados ? c.pipeline === 'Archivado' : c.pipeline !== 'Archivado');
+  if (busq) lista = lista.filter(c => c.name?.toLowerCase().includes(busq) || c.referente?.toLowerCase().includes(busq) || c.industria?.toLowerCase().includes(busq));
+  if(!lista.length){document.getElementById('clientes-grid').innerHTML='<div class="empty-state">'+(mostrarArchivados?'Sin clientes archivados.':'Sin clientes activos.')+'</div>';return;}
+  document.getElementById('clientes-grid').innerHTML = lista.map(c=>{
     // Prioriza proyecto activo, si no hay muestra el más reciente (excluye solo cancelado)
     const proj = S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado' && p.estado !== 'finalizado')
               || S.projects.find(p => p.client_id === c.id && p.estado !== 'cancelado');
@@ -1624,15 +1894,21 @@ function renderClientes() {
 // RENDER CRM
 // ════════════════════════════════════
 function renderCRM() {
-  const stagesShow = ['Prospecto','Contactado','Propuesta enviada','Negociación'];
-  document.getElementById('crm-kanban').innerHTML = stagesShow.map(stage=>{
+  const stagesActive  = ['Prospecto','Contactado','Propuesta enviada','Negociación'];
+  const stagesClosed  = ['Ganado','Perdido'];
+  const stageColors   = {Ganado:'var(--success)',Perdido:'var(--danger)'};
+  const allStages = [...stagesActive, ...stagesClosed];
+  document.getElementById('crm-kanban').innerHTML = allStages.map(stage=>{
     const items = S.leads.filter(l=>l.stage===stage);
-    return `<div class="kanban-col">
-      <div class="kanban-header">${stage}<span style="color:var(--text-muted);">${items.length}</span></div>
+    const isClosed = stagesClosed.includes(stage);
+    const headerColor = stageColors[stage] || 'var(--text-primary)';
+    return `<div class="kanban-col" style="${isClosed?'opacity:.75;':''}" >
+      <div class="kanban-header" style="color:${headerColor};">${stage}<span style="color:var(--text-muted);">${items.length}</span></div>
       ${items.length?items.map(l=>`<div class="kanban-card" onclick="openModal('lead-form',${JSON.stringify(l).replace(/"/g,'&quot;')})">
         <div style="font-weight:600;font-size:13px;">${l.nombre}</div>
         <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${l.empresa||'—'} · ${fmtMoney(l.valor_estimado)}</div>
         ${l.proxima_accion?`<div style="font-size:11px;color:var(--violet-glow);margin-top:6px;">→ ${l.proxima_accion}</div>`:''}
+        ${l.fecha_proxima_accion?`<div style="font-size:10px;color:var(--text-muted);margin-top:3px;">📅 ${l.fecha_proxima_accion}</div>`:''}
       </div>`).join(''):'<div class="kanban-empty">vacío</div>'}
     </div>`;
   }).join('');
@@ -1674,18 +1950,45 @@ async function convertirLead(id) {
 // ════════════════════════════════════
 // RENDER PRODUCCIÓN
 // ════════════════════════════════════
+function limpiarFiltrosProd() {
+  ['prod-fil-cliente','prod-fil-miembro','prod-fil-estado'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderProduccion();
+}
+
 function renderProduccion() {
   const hoy = isoToday();
+  // Poblar filtros si están vacíos
+  const selCli = document.getElementById('prod-fil-cliente');
+  if (selCli && selCli.options.length <= 1) S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.text=c.name;selCli.appendChild(o);});
+  const selMiem = document.getElementById('prod-fil-miembro');
+  if (selMiem && selMiem.options.length <= 1) S.teamMembers.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.text=m.nombre;selMiem.appendChild(o);});
+  const selEst = document.getElementById('prod-fil-estado');
+  if (selEst && selEst.options.length <= 1) ESTADOS.forEach(s=>{const o=document.createElement('option');o.value=s;o.text=s;selEst.appendChild(o);});
+  const filCli  = selCli?.value  || '';
+  const filMiem = selMiem?.value || '';
+  const filEst  = selEst?.value  || '';
+  const delivFil = S.deliverables.filter(v=>{
+    if (filCli  && v.client_id      !== filCli)  return false;
+    if (filMiem && v.team_member_id !== filMiem) return false;
+    if (filEst  && v.estado         !== filEst)  return false;
+    return true;
+  });
   document.getElementById('prod-kanban').innerHTML = ESTADOS.map(est=>{
-    const cards = S.deliverables.filter(v=>v.estado===est);
+    const cards = delivFil.filter(v=>v.estado===est);
     return `<div class="kanban-col" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,'${est}')">
       <div class="kanban-header">${est}<span style="color:var(--text-muted);">${cards.length}</span></div>
       ${cards.length?cards.map(v=>{
         const late = v.deadline && v.deadline<hoy && est!=='Finalizado';
-        return `<div class="kanban-card" draggable="true" ondragstart="onDragStart(event,'${v.id}')" ondragend="onDragEnd(event)" onclick="openModal('entregable-form',${JSON.stringify(v).replace(/"/g,'&quot;')})">
-          <div style="font-weight:600;">${iF(v.formato)} ${v.titulo}</div>
-          <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">${clientName(v.client_id)} · ${memberName(v.team_member_id)}</div>
-          <div style="font-size:11px;margin-top:4px;color:${late?'var(--danger)':'var(--text-muted)'};">${late?'⚠️ ATRASADO':v.deadline||'Sin fecha'}</div>
+        return `<div class="kanban-card" draggable="true" ondragstart="onDragStart(event,'${v.id}')" ondragend="onDragEnd(event)">
+          <div onclick="openModal('entregable-form',${JSON.stringify(v).replace(/"/g,'&quot;')})" style="cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+              <div style="font-weight:600;flex:1;">${iF(v.formato)} ${v.titulo}</div>
+              ${proyectoNumBadge(v)}
+            </div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">${clientName(v.client_id)} · ${memberName(v.team_member_id)}</div>
+            <div style="font-size:11px;margin-top:4px;color:${late?'var(--danger)':'var(--text-muted)'};">${late?'⚠️ ATRASADO':v.deadline||'Sin fecha'}</div>
+          </div>
+          <button class="btn btn-sm" onclick="event.stopPropagation();duplicarEntregable('${v.id}')" style="margin-top:6px;font-size:10px;padding:3px 8px;">📋 Duplicar</button>
         </div>`;
       }).join(''):'<div class="kanban-empty">vacío</div>'}
     </div>`;
@@ -1693,7 +1996,7 @@ function renderProduccion() {
 
   const estadoOpts = ESTADOS.map(s=>`<option value="${s}">${s}</option>`).join('');
   const fmtOpts = FORMATOS.map(f=>`<option value="${f}">${f}</option>`).join('');
-  document.getElementById('prod-tbody').innerHTML = S.deliverables.map(v=>{
+  document.getElementById('prod-tbody').innerHTML = delivFil.map(v=>{
     const late = v.deadline && v.deadline<hoy && v.estado!=='Finalizado';
     const member = S.teamMembers.find(x => x.id === v.team_member_id);
     const costo = member ? (parseFloat(v.horas_estimadas)||0) * (parseFloat(member.rate_hora)||0) : 0;
@@ -1704,13 +2007,14 @@ function renderProduccion() {
       <td>${memberName(v.team_member_id)}</td>
       <td style="color:${late?'var(--danger)':'inherit'};">${v.deadline||'—'}</td>
       <td><span class="badge ${estadoBadge(v.estado)}">${v.estado}</span></td>
-      <td style="text-align:right;">${v.horas_estimadas||0}h</td>
+      <td>${proyectoNumCell(v)}</td>
       <td style="text-align:right;color:var(--danger);">${costo>0?fmtMoney(costo):'—'}</td>
       <td>${v.invoice_id ? '<span class="badge badge-ok">✓ Facturado</span>' : (parseFloat(v.precio_unitario)||0)>0 ? `<span class="badge badge-risk">${fmtMoney(v.precio_unitario)}</span>` : '<span class="badge badge-gray">—</span>'}</td>
       <td>${v.feedback||'—'}</td>
       <td style="display:flex;gap:5px;">
         <button class="btn btn-sm" onclick="avanzarEstado('${v.id}')">→</button>
         <button class="btn btn-sm" onclick="openModal('entregable-form',${JSON.stringify(v).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn btn-sm" onclick="duplicarEntregable('${v.id}')" title="Duplicar">📋</button>
         <button class="btn btn-sm btn-danger" onclick="deleteEntregable('${v.id}')">✕</button>
       </td>
     </tr>`;
@@ -1789,7 +2093,7 @@ function fmtMes(ym) {
 function renderPaquetesMes() {
   const el = document.getElementById('paquetes-mes-content');
   if (!el) return;
-  const packageClients = S.clients.filter(c => c.tipo === 'package');
+  const packageClients = S.clients.filter(c => c.client_type === 'package');
   if (!packageClients.length) {
     el.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;">No hay clientes con pack mensual.</div>';
     return;
@@ -1807,7 +2111,7 @@ function renderPaquetesMes() {
     });
     const sortedMonths = Object.keys(byMonth).sort().reverse();
     html += `<div style="margin-bottom:28px;">
-      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text-primary);font-weight:600;margin-bottom:12px;">${c.nombre}${c.ingreso_mensual?` <span style="font-size:12px;color:var(--violet);font-family:'Inter',sans-serif;">${fmtMoney(c.ingreso_mensual)}/mes</span>`:''}</div>`;
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text-primary);font-weight:600;margin-bottom:12px;">${c.name}${c.ingreso_mensual?` <span style="font-size:12px;color:var(--violet);font-family:'Inter',sans-serif;">${fmtMoney(c.ingreso_mensual)}/mes</span>`:''}</div>`;
     sortedMonths.forEach(month => {
       const items = byMonth[month];
       const done = items.filter(d => d.estado === 'Finalizado').length;
@@ -1852,7 +2156,7 @@ function renderProyectosPanel() {
   Object.entries(byClient).forEach(([clientId, projs]) => {
     const client = S.clients.find(c => c.id === clientId);
     html += `<div style="margin-bottom:28px;">
-      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text-primary);font-weight:600;margin-bottom:12px;">${client?.nombre||'(sin cliente)'}</div>`;
+      <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--text-primary);font-weight:600;margin-bottom:12px;">${client?.name||'(sin cliente)'}</div>`;
     projs.forEach(p => {
       const linked = S.deliverables.filter(d => d.project_id === p.id);
       const done = linked.filter(d => d.estado === 'Finalizado').length;
@@ -1861,10 +2165,10 @@ function renderProyectosPanel() {
       let baseLabel = '';
       if (p.package_id) {
         const pkg = S.packages.find(pk => pk.id === p.package_id);
-        baseLabel = `📦 ${pkg?.nombre||'Pack'}`;
+        baseLabel = `📦 ${pkg?.name||'Pack'}`;
       } else if (p.service_catalog_id) {
         const svc = S.serviceCatalog.find(s => s.id === p.service_catalog_id);
-        baseLabel = `🛠 ${svc?.nombre||'Servicio'}`;
+        baseLabel = `🛠 ${svc?.name||'Servicio'}`;
       }
       const statusColors = {activo:'var(--violet)',en_progreso:'var(--violet)',finalizado:'var(--success)',pausado:'var(--warning)',cancelado:'var(--danger)'};
       const statusColor = statusColors[p.estado]||'var(--text-muted)';
@@ -1955,11 +2259,17 @@ async function deleteMember(id) {
 // RENDER FINANZAS
 // ════════════════════════════════════
 function renderFinanzas() {
-  const mrr = S.clients.reduce((a,c)=>a+(parseFloat(c.ingreso_mensual)||0),0);
-  const totEgr = S.expenses.reduce((a,e)=>a+(parseFloat(e.monto)||0),0);
+  const periodo = document.getElementById('fin-periodo')?.value || '';
+  const invoicesFil = periodo ? S.invoices.filter(i => (i.periodo||i.fecha_emision||'').startsWith(periodo)) : S.invoices;
+  const expensesFil = periodo ? S.expenses.filter(e => (e.fecha||'').startsWith(periodo)) : S.expenses;
+  const txnsFil     = periodo ? S.transactions.filter(t => (t.fecha||'').startsWith(periodo)) : S.transactions;
+  const mrr = periodo
+    ? invoicesFil.reduce((a,i)=>a+(parseFloat(i.monto)||0),0)
+    : S.clients.reduce((a,c)=>a+(parseFloat(c.ingreso_mensual)||0),0);
+  const totEgr = expensesFil.reduce((a,e)=>a+(parseFloat(e.monto)||0),0);
   const neto = mrr - totEgr;
-  const pendInv = S.invoices.filter(i=>i.estado==='pendiente'||i.estado==='atrasado').reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
-  const atrasados = S.invoices.filter(i=>i.estado==='atrasado').length;
+  const pendInv = invoicesFil.filter(i=>i.estado==='pendiente'||i.estado==='atrasado').reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
+  const atrasados = invoicesFil.filter(i=>i.estado==='atrasado').length;
 
   document.getElementById('fin-widgets').innerHTML = [
     {t:'📈 INGRESOS MRR', v:fmtMoney(mrr), s:'facturado a clientes'},
@@ -1992,7 +2302,7 @@ function renderFinanzas() {
   }).join('') || '<div class="empty-state">Sin clientes.</div>';
 
   // Cobranzas
-  document.getElementById('inv-tbody').innerHTML = S.invoices.map(i=>`<tr>
+  document.getElementById('inv-tbody').innerHTML = invoicesFil.map(i=>`<tr>
     <td style="color:var(--text-primary);">${clientName(i.client_id)}</td>
     <td>${i.periodo||'—'}</td>
     <td>${i.concepto}</td>
@@ -2001,17 +2311,18 @@ function renderFinanzas() {
     <td><span class="badge ${i.estado==='pagado'?'badge-ok':i.estado==='atrasado'?'badge-late':'badge-risk'}">${i.estado}</span></td>
     <td style="display:flex;gap:5px;">
       ${i.estado!=='pagado'?`<button class="btn btn-sm" onclick="marcarPagado('${i.id}')" style="border-color:var(--success);color:var(--success);">✓ Cobrar</button>`:''}
+      <button class="btn btn-sm" onclick="openModal('factura-form',${JSON.stringify(i).replace(/"/g,'&quot;')})">✏️</button>
       <button class="btn btn-sm btn-danger" onclick="deleteInvoice('${i.id}')">✕</button>
     </td>
   </tr>`).join('') || '<tr><td colspan="7" class="empty-state">Sin facturas.</td></tr>';
 
   // Egresos por categoría
   const porCat = {};
-  S.expenses.forEach(e=>{porCat[e.categoria]=(porCat[e.categoria]||0)+(parseFloat(e.monto)||0);});
+  expensesFil.forEach(e=>{porCat[e.categoria]=(porCat[e.categoria]||0)+(parseFloat(e.monto)||0);});
   document.getElementById('fin-cat-widgets').innerHTML = Object.entries(porCat).sort((a,b)=>b[1]-a[1]).map(([cat,monto])=>`<div class="widget"><div class="widget-title">${cat}</div><div class="widget-value" style="font-size:24px;color:var(--danger);">${fmtMoney(monto)}</div><div class="widget-sub">${totEgr?((monto/totEgr)*100).toFixed(0):0}% del total</div></div>`).join('') || '<div style="color:var(--text-muted);font-size:13px;">Sin egresos registrados.</div>';
 
   // Detalle egresos
-  document.getElementById('exp-tbody').innerHTML = S.expenses.map(e=>`<tr>
+  document.getElementById('exp-tbody').innerHTML = expensesFil.map(e=>`<tr>
     <td style="color:var(--text-primary);">${e.concepto}</td>
     <td><span class="badge badge-gray">${e.categoria}</span></td>
     <td>${e.fecha}</td>
@@ -2023,7 +2334,7 @@ function renderFinanzas() {
   </tr>`).join('') || '<tr><td colspan="5" class="empty-state">Sin egresos.</td></tr>';
 
   // Movimientos
-  document.getElementById('txn-tbody').innerHTML = S.transactions.map(t=>`<tr>
+  document.getElementById('txn-tbody').innerHTML = txnsFil.map(t=>`<tr>
     <td>${t.fecha}</td>
     <td><span class="badge ${t.tipo==='ingreso'?'badge-ok':'badge-late'}">${t.tipo}</span></td>
     <td style="color:var(--text-primary);">${t.descripcion}</td>
@@ -2115,6 +2426,263 @@ function calMove(delta){ calState.mes+=delta; if(calState.mes<0){calState.mes=11
 function calHoy(){ calState.mes=new Date().getMonth(); calState.anio=new Date().getFullYear(); renderCalendario(); }
 
 // ════════════════════════════════════
+// REPORTES
+// ════════════════════════════════════
+function setRepMesHoy() {
+  const el = document.getElementById('rep-mes');
+  if (el) { el.value = isoToday().slice(0,7); renderResumenMensual(); }
+}
+
+function renderReportes() {
+  // Poblar selector de clientes en historial
+  const sel = document.getElementById('rep-met-cliente');
+  if (sel && sel.options.length <= 1) {
+    S.clients.forEach(c => { const o = document.createElement('option'); o.value = c.id; o.text = c.name; sel.appendChild(o); });
+  }
+  const repMes = document.getElementById('rep-mes');
+  if (repMes && !repMes.value) repMes.value = isoToday().slice(0,7);
+  renderResumenMensual();
+  renderHistoricoMetricas();
+}
+
+function renderResumenMensual() {
+  const periodo = document.getElementById('rep-mes')?.value || isoToday().slice(0,7);
+  if (!periodo) return;
+
+  const invsMes   = S.invoices.filter(i => (i.periodo||'').startsWith(periodo) || (i.fecha_emision||'').startsWith(periodo));
+  const egrMes    = S.expenses.filter(e => (e.fecha||'').startsWith(periodo));
+  const delsMes   = S.deliverables.filter(d => (d.deadline||'').startsWith(periodo));
+  const leadsMes  = S.leads.filter(l => (l.created_at||'').startsWith(periodo));
+
+  const ingresos  = invsMes.reduce((a,i) => a + (parseFloat(i.monto)||0), 0);
+  const egresos   = egrMes.reduce((a,e)  => a + (parseFloat(e.monto)||0), 0);
+  const neto      = ingresos - egresos;
+  const cobrados  = invsMes.filter(i => i.estado === 'pagado').reduce((a,i) => a + (parseFloat(i.monto)||0), 0);
+  const delsOk    = delsMes.filter(d => d.estado === 'Finalizado').length;
+  const leadsNuevos = leadsMes.length;
+  const leadsGanados = S.leads.filter(l => l.stage === 'Ganado' && (l.updated_at||l.created_at||'').startsWith(periodo)).length;
+
+  document.getElementById('rep-kpis').innerHTML = [
+    { t: '💰 FACTURADO', v: fmtMoney(ingresos), s: `${fmtMoney(cobrados)} cobrado efectivo`, col: 'var(--violet)' },
+    { t: '📉 EGRESOS', v: fmtMoney(egresos), s: `${egrMes.length} movimiento${egrMes.length!==1?'s':''}`, col: 'var(--danger)' },
+    { t: '💎 GANANCIA NETA', v: fmtMoney(neto), s: neto >= 0 ? '✅ positivo' : '⚠️ negativo', col: neto >= 0 ? 'var(--success)' : 'var(--danger)' },
+    { t: '🎬 ENTREGABLES', v: `${delsOk} / ${delsMes.length}`, s: 'finalizados del mes', col: 'var(--violet)' },
+    { t: '🤝 LEADS NUEVOS', v: leadsNuevos, s: `${leadsGanados} convertidos`, col: 'var(--violet)' },
+    { t: '🧾 POR COBRAR', v: fmtMoney(invsMes.filter(i=>i.estado!=='pagado').reduce((a,i)=>a+(parseFloat(i.monto)||0),0)), s: 'facturas pendientes', col: 'var(--warning)' },
+  ].map(w => `<div class="widget"><div class="widget-title">${w.t}</div><div class="widget-value" style="color:${w.col};">${w.v}</div><div class="widget-sub">${w.s}</div></div>`).join('');
+
+  // Detalle por cliente
+  const porCliente = document.getElementById('rep-por-cliente');
+  const clientRows = S.clients.map(c => {
+    const invC    = invsMes.filter(i => i.client_id === c.id);
+    const ingC    = invC.reduce((a,i) => a + (parseFloat(i.monto)||0), 0);
+    const delsC   = delsMes.filter(d => d.client_id === c.id);
+    const doneC   = delsC.filter(d => d.estado === 'Finalizado').length;
+    if (!ingC && !delsC.length) return '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-dim);font-size:12px;">
+      <span style="color:var(--text-primary);font-weight:500;">${c.name}</span>
+      <span style="color:var(--violet);font-weight:600;">${fmtMoney(ingC)}</span>
+      <span style="color:var(--text-muted);">${doneC}/${delsC.length} entregables</span>
+    </div>`;
+  }).filter(Boolean).join('');
+  porCliente.innerHTML = clientRows || '<div style="font-size:12px;color:var(--text-muted);padding:12px 0;">Sin actividad este mes.</div>';
+
+  // Entregables del mes
+  const repEnt = document.getElementById('rep-entregables');
+  if (!delsMes.length) { repEnt.innerHTML = '<div style="color:var(--text-muted);padding:12px 0;">Sin entregables con deadline en este período.</div>'; }
+  else {
+    const byEstado = {};
+    delsMes.forEach(d => { byEstado[d.estado] = (byEstado[d.estado]||0) + 1; });
+    repEnt.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;">${Object.entries(byEstado).map(([est,n]) => `<span class="badge ${estadoBadge(est)}">${est}: ${n}</span>`).join('')}</div>` +
+      delsMes.slice(0,8).map(d => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border-dim);">
+        <span style="color:var(--text-secondary);">${iF(d.formato)} ${d.titulo.length>28?d.titulo.slice(0,28)+'…':d.titulo}</span>
+        <span class="badge ${estadoBadge(d.estado)}" style="flex-shrink:0;">${d.estado}</span>
+      </div>`).join('') +
+      (delsMes.length > 8 ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 0;">+${delsMes.length-8} más</div>` : '');
+  }
+
+  // CRM del mes
+  const repCRM = document.getElementById('rep-crm');
+  const stageCount = {};
+  S.leads.forEach(l => { stageCount[l.stage] = (stageCount[l.stage]||0)+1; });
+  const totalLeads = S.leads.length;
+  const valPipeline = S.leads.filter(l=>!['Ganado','Perdido'].includes(l.stage)).reduce((a,l)=>a+(parseFloat(l.valor_estimado)||0),0);
+  repCRM.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">${Object.entries(stageCount).map(([s,n])=>`<span class="badge badge-gray">${s}: ${n}</span>`).join('')}</div>
+    <div style="font-size:12px;color:var(--text-secondary);">Total leads: <strong style="color:var(--text-primary);">${totalLeads}</strong> · Valor pipeline activo: <strong style="color:var(--violet);">${fmtMoney(valPipeline)}</strong></div>`;
+}
+
+// ════════════════════════════════════
+// HISTORIAL DE MÉTRICAS
+// ════════════════════════════════════
+function renderHistoricoMetricas() {
+  const filtCli = document.getElementById('rep-met-cliente')?.value || '';
+  const data = filtCli ? S.metricsHistory.filter(m => m.client_id === filtCli) : S.metricsHistory;
+  const el = document.getElementById('rep-met-content');
+  if (!el) return;
+
+  if (!data.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:40px;text-align:center;">Sin métricas históricas. Cargá el primer registro con el botón de arriba.</div>';
+    return;
+  }
+
+  // Agrupar por cliente
+  const byClient = {};
+  data.forEach(m => {
+    if (!byClient[m.client_id]) byClient[m.client_id] = [];
+    byClient[m.client_id].push(m);
+  });
+
+  el.innerHTML = Object.entries(byClient).map(([cid, entries]) => {
+    const client = S.clients.find(c => c.id === cid);
+    const sorted = [...entries].sort((a,b) => b.periodo.localeCompare(a.periodo));
+    const maxViews = Math.max(...sorted.map(e => e.views||0), 1);
+    return `<div class="widget" style="margin-bottom:20px;">
+      <div class="widget-title" style="margin-bottom:16px;">📊 ${client?.name||'(sin cliente)'}</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr>
+            <th style="text-align:left;padding:6px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-dim);">Período</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-dim);">Reproducciones</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-dim);">Retención %</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-dim);">CTR %</th>
+            <th style="text-align:right;padding:6px 10px;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-dim);">Leads</th>
+            <th style="padding:6px 10px;border-bottom:1px solid var(--border-dim);"></th>
+          </tr></thead>
+          <tbody>
+            ${sorted.map((m,i) => {
+              const prev = sorted[i+1];
+              const viewDelta = prev ? m.views - prev.views : null;
+              const deltaHtml = viewDelta !== null ? `<span style="font-size:10px;color:${viewDelta>=0?'var(--success)':'var(--danger)'};">${viewDelta>=0?'▲':'▼'} ${Math.abs(viewDelta).toLocaleString()}</span>` : '';
+              return `<tr>
+                <td style="padding:8px 10px;color:var(--violet-glow);font-weight:600;">${fmtMes(m.periodo)}</td>
+                <td style="padding:8px 10px;text-align:right;">
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+                    <span style="color:var(--text-primary);font-weight:500;">${(m.views||0).toLocaleString()}</span>
+                    ${deltaHtml}
+                    <div style="width:80px;height:4px;background:var(--bg-elevated);border-radius:2px;overflow:hidden;margin-top:2px;"><div style="height:100%;width:${Math.round(((m.views||0)/maxViews)*100)}%;background:var(--violet);border-radius:2px;"></div></div>
+                  </div>
+                </td>
+                <td style="padding:8px 10px;text-align:right;color:${(m.retencion||0)>=50?'var(--success)':'var(--warning)'};">${m.retencion||0}%</td>
+                <td style="padding:8px 10px;text-align:right;">${m.ctr||0}%</td>
+                <td style="padding:8px 10px;text-align:right;color:var(--success);font-weight:600;">${m.leads_generados||0}</td>
+                <td style="padding:8px 10px;">
+                  <button class="btn btn-sm" onclick="openModal('metrica-form',${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteMetrica('${m.id}')">✕</button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${sorted.length >= 2 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:10px;">Tendencia reproducciones: ${sorted[0].views >= sorted[sorted.length-1].views ? '📈 creciendo' : '📉 bajando'} · Mejor mes: ${fmtMes(sorted.reduce((a,b)=>(b.views||0)>(a.views||0)?b:a).periodo)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function showMetricaForm(d={}) {
+  const mesActual = isoToday().slice(0,7);
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">${d.id?'Editar métricas':'Cargar métricas del período'}</div>
+    <form class="form-grid" onsubmit="submitMetrica(event,'${d.id||''}')">
+      <div class="form-group"><label>Cliente *</label>
+        <select name="client_id" required>
+          <option value="">Seleccioná</option>${clienteOptsHtml(d.client_id)}
+        </select>
+      </div>
+      <div class="form-group"><label>Período (AAAA-MM) *</label>
+        <input name="periodo" type="month" value="${d.periodo||mesActual}" required>
+      </div>
+      <div class="form-group"><label>Reproducciones totales</label><input name="views" type="number" value="${d.views||0}"></div>
+      <div class="form-group"><label>Retención %</label><input name="retencion" type="number" step="0.1" min="0" max="100" value="${d.retencion||0}"></div>
+      <div class="form-group"><label>CTR %</label><input name="ctr" type="number" step="0.1" min="0" max="100" value="${d.ctr||0}"></div>
+      <div class="form-group"><label>Leads generados</label><input name="leads_generados" type="number" value="${d.leads_generados||0}"></div>
+      <div class="form-group full"><label>Notas del período</label><textarea name="notas">${d.notas||''}</textarea></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+}
+
+async function submitMetrica(e, id) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.views = parseInt(f.views)||0;
+  f.retencion = parseFloat(f.retencion)||0;
+  f.ctr = parseFloat(f.ctr)||0;
+  f.leads_generados = parseInt(f.leads_generados)||0;
+  try {
+    if (id) {
+      await dbUpdate('metrics_history', id, f);
+      const i = S.metricsHistory.findIndex(x=>x.id===id);
+      if(i>-1) S.metricsHistory[i] = {...S.metricsHistory[i],...f,id};
+      toast('Métricas actualizadas');
+    } else {
+      const r = await dbInsert('metrics_history', f);
+      S.metricsHistory.unshift(r);
+      toast('Métricas guardadas');
+    }
+    closeModal('modal-form');
+    renderHistoricoMetricas();
+  } catch(err) { toast(err.message,'error'); }
+}
+
+async function deleteMetrica(id) {
+  if(!confirm('¿Eliminar este registro?')) return;
+  try {
+    await dbDelete('metrics_history', id);
+    S.metricsHistory = S.metricsHistory.filter(x=>x.id!==id);
+    renderHistoricoMetricas();
+    toast('Registro eliminado');
+  } catch(e) { toast(e.message,'error'); }
+}
+
+// ════════════════════════════════════
+// EXPORTAR CSV
+// ════════════════════════════════════
+function exportCSV(tipo) {
+  let rows = [], headers = [], filename = '';
+  if (tipo === 'clientes') {
+    headers = ['Nombre','Tipo','Pipeline','Ingreso mensual','Industria','Mercado','Referente','Email','Teléfono','Instagram','Web','Estrategia','Notas'];
+    rows = S.clients.map(c => [c.name,c.client_type,c.pipeline,c.ingreso_mensual,c.industria,c.mercado,c.referente,c.email,c.telefono,c.instagram,c.web,c.estrategia,c.notas]);
+    filename = 'clutch-clientes';
+  } else if (tipo === 'facturas') {
+    headers = ['Cliente','Período','Concepto','Monto','Vencimiento','Estado','Fecha pago'];
+    rows = S.invoices.map(i => [clientName(i.client_id),i.periodo,i.concepto,i.monto,i.fecha_vencimiento,i.estado,i.fecha_pago]);
+    filename = 'clutch-facturas';
+  } else if (tipo === 'egresos') {
+    headers = ['Concepto','Categoría','Fecha','Monto','Recurrente','Notas'];
+    rows = S.expenses.map(e => [e.concepto,e.categoria,e.fecha,e.monto,e.recurrente?'Sí':'No',e.notas]);
+    filename = 'clutch-egresos';
+  } else if (tipo === 'entregables') {
+    headers = ['Título','Formato','Cliente','Responsable','Deadline','Estado','Horas est.','Precio','Facturado'];
+    rows = S.deliverables.map(d => [d.titulo,d.formato,clientName(d.client_id),memberName(d.team_member_id),d.deadline,d.estado,d.horas_estimadas,d.precio_unitario,d.invoice_id?'Sí':'No']);
+    filename = 'clutch-entregables';
+  } else if (tipo === 'leads') {
+    headers = ['Nombre','Empresa','Email','Teléfono','Industria','Etapa','Valor estimado','Origen','Próxima acción','Fecha próxima acción'];
+    rows = S.leads.map(l => [l.nombre,l.empresa,l.email,l.telefono,l.industria,l.stage,l.valor_estimado,l.origen,l.proxima_accion,l.fecha_proxima_accion]);
+    filename = 'clutch-leads';
+  } else if (tipo === 'equipo') {
+    headers = ['Nombre','Rol','Tipo','Rate/hora','Sueldo mensual','Capacidad semanal (hs)','Calidad'];
+    rows = S.teamMembers.map(m => [m.nombre,m.rol,m.tipo,m.rate_hora,m.sueldo_mensual,m.capacidad_semanal,m.calidad]);
+    filename = 'clutch-equipo';
+  }
+
+  const escape = v => {
+    const s = (v === null || v === undefined) ? '' : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${filename}-${isoToday()}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast(`${tipo.charAt(0).toUpperCase()+tipo.slice(1)} exportado ✓`);
+}
+
+// ════════════════════════════════════
 // RENDER RENDIMIENTO
 // ════════════════════════════════════
 function renderRendimiento() {
@@ -2169,6 +2737,199 @@ function renderStats() {
   document.getElementById('sc-entregables').textContent = S.deliverables.length;
   const mrr = S.clients.reduce((a,c)=>a+(parseFloat(c.ingreso_mensual)||0),0);
   document.getElementById('sc-mrr').textContent = fmtMoney(mrr);
+  renderBadges();
+}
+
+// ════════════════════════════════════
+// BÚSQUEDA GLOBAL
+// ════════════════════════════════════
+function openSearch() {
+  document.getElementById('modal-search').classList.add('show');
+  setTimeout(() => document.getElementById('search-input')?.focus(), 50);
+}
+function closeSearch() {
+  document.getElementById('modal-search').classList.remove('show');
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = '';
+  document.getElementById('search-results').innerHTML = '';
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+  if (e.key === 'Escape') closeSearch();
+});
+
+function runSearch(q) {
+  const el = document.getElementById('search-results');
+  if (!q || q.length < 2) { el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-muted);">Escribí al menos 2 caracteres</div>'; return; }
+  const lq = q.toLowerCase();
+  const results = [];
+
+  S.clients.filter(c => c.name?.toLowerCase().includes(lq) || c.referente?.toLowerCase().includes(lq) || c.industria?.toLowerCase().includes(lq))
+    .slice(0,4).forEach(c => results.push({ group:'👤 Clientes', icon:'👤', main: c.name, sub: `${c.industria||''} · ${c.pipeline}`, action: `closeSearch();openFicha('${c.id}')` }));
+
+  S.leads.filter(l => l.nombre?.toLowerCase().includes(lq) || l.empresa?.toLowerCase().includes(lq))
+    .slice(0,3).forEach(l => results.push({ group:'🤝 CRM', icon:'🤝', main: l.nombre, sub: `${l.empresa||'—'} · ${l.stage}`, action: `closeSearch();document.querySelector('[data-panel=crm]').click();openModal('lead-form',${JSON.stringify(l).replace(/'/g,"'")})`  }));
+
+  S.deliverables.filter(d => d.titulo?.toLowerCase().includes(lq))
+    .slice(0,4).forEach(d => results.push({ group:'🎬 Producción', icon: iF(d.formato), main: d.titulo, sub: `${clientName(d.client_id)} · ${d.estado}`, action: `closeSearch();document.querySelector('[data-panel=produccion]').click();openModal('entregable-form',${JSON.stringify(d).replace(/'/g,"'")})` }));
+
+  S.invoices.filter(i => i.concepto?.toLowerCase().includes(lq) || clientName(i.client_id).toLowerCase().includes(lq))
+    .slice(0,3).forEach(i => results.push({ group:'🧾 Facturas', icon:'🧾', main: i.concepto, sub: `${clientName(i.client_id)} · ${fmtMoney(i.monto)} · ${i.estado}`, action: `closeSearch();document.querySelector('[data-panel=finanzas]').click()` }));
+
+  if (!results.length) { el.innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--text-muted);">Sin resultados para "'+q+'"</div>'; return; }
+
+  const grouped = {};
+  results.forEach(r => { if (!grouped[r.group]) grouped[r.group] = []; grouped[r.group].push(r); });
+  el.innerHTML = Object.entries(grouped).map(([g, items]) =>
+    `<div class="search-group">${g}</div>` +
+    items.map(r => `<div class="search-item" onclick="${r.action}">
+      <div class="search-item-icon">${r.icon}</div>
+      <div><div class="search-item-main">${r.main}</div><div class="search-item-sub">${r.sub}</div></div>
+    </div>`).join('')
+  ).join('');
+}
+
+// ════════════════════════════════════
+// BADGES DE ALERTAS
+// ════════════════════════════════════
+function renderBadges() {
+  const hoy = isoToday();
+  const atrasados = S.deliverables.filter(v => v.deadline < hoy && v.estado !== 'Finalizado').length;
+  const factPend  = S.invoices.filter(i => i.estado === 'pendiente' || i.estado === 'atrasado').length;
+  const leadsHoy  = S.leads.filter(l => l.fecha_proxima_accion === hoy && !['Ganado','Perdido'].includes(l.stage)).length;
+
+  const badgeProd = document.getElementById('badge-prod');
+  if (badgeProd) { badgeProd.textContent = atrasados; badgeProd.style.display = atrasados ? '' : 'none'; }
+  const badgeFin  = document.getElementById('badge-fin');
+  if (badgeFin)  { badgeFin.textContent  = factPend;  badgeFin.style.display  = factPend  ? '' : 'none'; }
+  const badgeCRM  = document.getElementById('badge-crm');
+  if (badgeCRM)  { badgeCRM.textContent  = leadsHoy;  badgeCRM.style.display  = leadsHoy  ? '' : 'none'; }
+}
+
+// ════════════════════════════════════
+// DUPLICAR ENTREGABLE
+// ════════════════════════════════════
+async function duplicarEntregable(id) {
+  const v = S.deliverables.find(x => x.id === id); if (!v) return;
+  const copia = { titulo: v.titulo + ' (copia)', formato: v.formato, tipo: v.tipo, client_id: v.client_id, team_member_id: v.team_member_id, estado: 'Idea', horas_estimadas: v.horas_estimadas, precio_unitario: v.precio_unitario, service_catalog_id: v.service_catalog_id, project_id: v.project_id };
+  try {
+    const r = await dbInsert('deliverables', copia);
+    S.deliverables.push(r);
+    renderAll();
+    toast(`"${v.titulo}" duplicado`);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════
+// CARGA DEL EQUIPO
+// ════════════════════════════════════
+function switchEqTab(tab, panelId) {
+  document.getElementById('eq-tabs').querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#equipo .sub-panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+  if (panelId === 'eq-panel-carga') renderCargaEquipo();
+}
+
+function renderCargaEquipo() {
+  const hoy = isoToday();
+  const mesActual = hoy.slice(0,7);
+  const el = document.getElementById('equipo-carga');
+  if (!el) return;
+  if (!S.teamMembers.length) { el.innerHTML = '<div class="empty-state">Sin miembros del equipo.</div>'; return; }
+
+  el.innerHTML = S.teamMembers.map(m => {
+    const asignados = S.deliverables.filter(d => d.team_member_id === m.id && d.estado !== 'Finalizado');
+    const horasAsig = asignados.reduce((a,d) => a + (parseFloat(d.horas_estimadas)||0), 0);
+    const capMensual = (parseFloat(m.capacidad_semanal)||40) * 4;
+    const pct = capMensual > 0 ? Math.min(Math.round((horasAsig / capMensual) * 100), 100) : 0;
+    const color = pct >= 90 ? 'var(--danger)' : pct >= 70 ? 'var(--warning)' : 'var(--success)';
+    const atrasadosM = asignados.filter(d => d.deadline && d.deadline < hoy).length;
+    const proximos = asignados.filter(d => d.deadline && d.deadline >= hoy).sort((a,b) => a.deadline.localeCompare(b.deadline)).slice(0,3);
+    return `<div class="widget" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+        <div>
+          <div style="font-weight:600;color:var(--text-primary);font-size:15px;">${m.nombre}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${m.rol} · ${m.tipo}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:22px;font-family:'Playfair Display',serif;color:${color};font-weight:600;">${pct}%</div>
+          <div style="font-size:10px;color:var(--text-muted);">${horasAsig}h / ${capMensual}h</div>
+        </div>
+      </div>
+      <div class="carga-bar"><div class="carga-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text-secondary);">
+        <span>📋 ${asignados.length} entregable${asignados.length!==1?'s':''} activos</span>
+        ${atrasadosM ? `<span style="color:var(--danger);">⚠️ ${atrasadosM} atrasado${atrasadosM!==1?'s':''}</span>` : '<span style="color:var(--success);">✅ Al día</span>'}
+      </div>
+      ${proximos.length ? `<div style="margin-top:10px;border-top:1px solid var(--border-dim);padding-top:10px;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Próximos deadlines</div>
+        ${proximos.map(d => `<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;"><span style="color:var(--text-secondary);">${iF(d.formato)} ${d.titulo.length>30?d.titulo.slice(0,30)+'…':d.titulo}</span><span style="color:var(--violet);font-weight:500;">${d.deadline}</span></div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════
+// ARCHIVAR CLIENTES
+// ════════════════════════════════════
+let mostrarArchivados = false;
+
+function toggleArchivados() {
+  mostrarArchivados = !mostrarArchivados;
+  const btn = document.getElementById('cli-arch-btn');
+  if (btn) { btn.textContent = mostrarArchivados ? '✅ Archivados visibles' : 'Ver archivados'; btn.style.borderColor = mostrarArchivados ? 'var(--violet)' : ''; btn.style.color = mostrarArchivados ? 'var(--violet)' : ''; }
+  renderClientes();
+}
+
+async function archivarCliente(id, estaArchivado) {
+  const nuevoEstado = estaArchivado ? 'Riesgo' : 'Archivado';
+  try {
+    await dbUpdate('clients', id, { pipeline: nuevoEstado });
+    const c = S.clients.find(x => x.id === id);
+    if (c) c.pipeline = nuevoEstado;
+    closeModal('modal-ficha');
+    renderAll();
+    toast(estaArchivado ? 'Cliente reactivado' : 'Cliente archivado');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ════════════════════════════════════
+// PLANTILLAS DE ENTREGABLES
+// ════════════════════════════════════
+function getPlantillas() {
+  try { return JSON.parse(localStorage.getItem('cr_plantillas') || '[]'); } catch { return []; }
+}
+function savePlantillas(arr) { localStorage.setItem('cr_plantillas', JSON.stringify(arr)); }
+
+function getPlantillaOpts() {
+  return getPlantillas().map((p,i) => `<option value="${i}">${iF(p.formato)} ${p.nombre} — ${fmtMoney(p.precio_unitario)}</option>`).join('');
+}
+
+function aplicarPlantilla(sel) {
+  const idx = parseInt(sel.value);
+  if (isNaN(idx)) return;
+  const p = getPlantillas()[idx]; if (!p) return;
+  const form = sel.closest('.modal').querySelector('form');
+  if (!form) return;
+  const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = val; };
+  set('formato', p.formato);
+  set('tipo', p.tipo || '');
+  set('horas_estimadas', p.horas_estimadas || 0);
+  set('precio_unitario', p.precio_unitario || 0);
+  if (p.team_member_id) set('team_member_id', p.team_member_id);
+  toast(`Plantilla "${p.nombre}" aplicada`);
+}
+
+function guardarComoPlantilla() {
+  const form = document.querySelector('#modal-form form');
+  if (!form) return;
+  const f = Object.fromEntries(new FormData(form));
+  const nombre = prompt('Nombre de la plantilla:'); if (!nombre) return;
+  const plantillas = getPlantillas();
+  plantillas.push({ nombre, formato: f.formato, tipo: f.tipo, horas_estimadas: parseFloat(f.horas_estimadas)||0, precio_unitario: parseFloat(f.precio_unitario)||0, team_member_id: f.team_member_id||null });
+  savePlantillas(plantillas);
+  toast(`Plantilla "${nombre}" guardada`);
 }
 
 // ════════════════════════════════════
@@ -2185,6 +2946,8 @@ function renderAll() {
   renderRendimiento();
   renderRoadmap();
   renderServicios();
+  renderReportes();
+  renderUsuarios();
   renderStats();
 }
 
@@ -2220,8 +2983,8 @@ let currentUser    = null;
 let currentProfile = null;
 
 const NAV_BY_ROLE = {
-  admin:   ['dashboard','clientes','crm','produccion','equipo','finanzas','calendario','rendimiento','roadmap','servicios','usuarios'],
-  manager: ['dashboard','clientes','produccion','calendario','rendimiento','roadmap'],
+  admin:   ['dashboard','clientes','crm','produccion','equipo','finanzas','calendario','rendimiento','roadmap','servicios','reportes','usuarios'],
+  manager: ['dashboard','clientes','produccion','calendario','rendimiento','roadmap','reportes'],
   editor:  ['dashboard','produccion','calendario'],
 };
 
@@ -2297,6 +3060,127 @@ async function handleRegister(e) {
   errEl.style.color = 'var(--success)';
   errEl.textContent = '✅ Cuenta creada. Ya podés ingresar.';
   setTimeout(toggleRegister, 2000);
+}
+
+// ════════════════════════════════════
+// RENDER USUARIOS
+// ════════════════════════════════════
+function renderUsuarios() {
+  const rol = currentProfile?.rol;
+  if (rol !== 'admin') return;
+  document.getElementById('usuarios-tbody').innerHTML = S.userProfiles.length
+    ? S.userProfiles.map(u => `<tr>
+        <td style="color:var(--text-primary);font-weight:500;">${u.nombre||'—'}</td>
+        <td style="color:var(--text-secondary);">${u.email||currentUser?.email||'—'}</td>
+        <td><span class="badge ${u.rol==='admin'?'badge-active':u.rol==='manager'?'badge-risk':'badge-gray'}">${u.rol||'editor'}</span></td>
+        <td style="color:var(--text-muted);">—</td>
+        <td><span class="badge badge-ok">Activo</span></td>
+        <td>
+          <button class="btn btn-sm" onclick="showEditRolForm('${u.id}','${u.rol||'editor'}','${(u.nombre||'').replace(/'/g,'')}')">✏️ Rol</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="empty-state">Sin usuarios registrados.</td></tr>';
+}
+
+function showEditRolForm(id, rolActual, nombre) {
+  const rolOpts = ['admin','manager','editor'].map(r=>`<option value="${r}"${r===rolActual?' selected':''}>${r}</option>`).join('');
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Editar rol — ${nombre}</div>
+    <form class="form-grid" onsubmit="submitEditRol(event,'${id}')">
+      <div class="form-group full"><label>Rol</label><select name="rol">${rolOpts}</select></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitEditRol(e, id) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  try {
+    await dbUpdate('user_profiles', id, {rol: f.rol});
+    const p = S.userProfiles.find(x=>x.id===id);
+    if (p) p.rol = f.rol;
+    closeModal('modal-form');
+    renderUsuarios();
+    toast('Rol actualizado');
+  } catch(err) { toast(err.message,'error'); }
+}
+
+function showNuevoUsuarioForm() {
+  const rolOpts = ['admin','manager','editor'].map(r=>`<option value="${r}">${r}</option>`).join('');
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Nuevo usuario</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;line-height:1.5;">El usuario recibirá un email de confirmación. Una vez que confirme, su rol se asignará automáticamente.</div>
+    <form class="form-grid" onsubmit="submitNuevoUsuario(event)">
+      <div class="form-group full"><label>Nombre *</label><input name="nombre" required placeholder="Nombre completo"></div>
+      <div class="form-group full"><label>Email *</label><input name="email" type="email" required placeholder="usuario@email.com"></div>
+      <div class="form-group full"><label>Contraseña inicial *</label><input name="password" type="password" required placeholder="Mínimo 6 caracteres" minlength="6"></div>
+      <div class="form-group full"><label>Rol</label><select name="rol">${rolOpts}</select></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear usuario</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitNuevoUsuario(e) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  const btn = e.target.querySelector('[type=submit]');
+  btn.textContent = 'Creando...'; btn.disabled = true;
+  try {
+    const { data, error } = await sb.auth.signUp({ email: f.email, password: f.password, options: { data: { nombre: f.nombre } } });
+    if (error) throw error;
+    if (data.user) {
+      await new Promise(r => setTimeout(r, 600));
+      await sb.from('user_profiles').upsert({ id: data.user.id, nombre: f.nombre, email: f.email, rol: f.rol });
+      const { data: profiles } = await sb.from('user_profiles').select('*').order('nombre');
+      S.userProfiles = profiles || [];
+    }
+    closeModal('modal-form');
+    renderUsuarios();
+    toast('Usuario creado. Debe confirmar el email.');
+  } catch(err) { toast(err.message,'error'); btn.textContent='Crear usuario'; btn.disabled=false; }
+}
+
+// ════════════════════════════════════
+// NUEVO PACK
+// ════════════════════════════════════
+function showNuevoPaqueteForm() {
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">Nuevo pack</div>
+    <form class="form-grid" onsubmit="submitNuevoPaquete(event)">
+      <div class="form-group full"><label>Nombre *</label><input name="name" required placeholder="Ej: Pack Creator"></div>
+      <div class="form-group full"><label>Descripción</label><textarea name="description" placeholder="Qué incluye este pack..."></textarea></div>
+      <div class="form-group"><label>Precio mensual (EUR) *</label><input name="price" type="number" step="0.01" required placeholder="0"></div>
+      <div class="form-group"><label>Entregables por mes</label><input name="deliverables_per_month" type="number" value="0"></div>
+      <div class="form-group full"><label>Qué incluye (uno por línea)</label><textarea name="services" rows="5" placeholder="Edición de 4 Reels&#10;1 video largo mensual&#10;Copy para todas las publicaciones"></textarea></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear pack</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitNuevoPaquete(e) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.price = parseFloat(f.price)||0;
+  f.deliverables_per_month = parseInt(f.deliverables_per_month)||0;
+  f.services = f.services.split('\n').map(s=>s.trim()).filter(Boolean);
+  f.active = true;
+  try {
+    const r = await dbInsert('packages', f);
+    S.packages.push(r);
+    closeModal('modal-form');
+    renderServicios();
+    toast('Pack creado');
+  } catch(err) { toast(err.message,'error'); }
 }
 
 function toggleRegister() {
