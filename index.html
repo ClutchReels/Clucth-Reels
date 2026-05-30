@@ -53,7 +53,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background-im
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
 .grid-auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px;}
 @media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}.app-layout{flex-direction:column;}.sidebar{width:100%;height:auto;position:sticky;top:0;padding:16px;}.nav-clutch{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:4px;}.nav-item{width:auto;flex-shrink:0;border-left:none;border-bottom:3px solid transparent;padding:8px 14px;}.nav-item.active{border-left:none;border-bottom-color:var(--violet);}.sidebar-stats{flex-direction:row;gap:24px;margin-top:12px;padding:12px 8px 0;}}
 
 /* WIDGETS */
 .widget{background:var(--bg-card);border:1px solid var(--border-dim);border-radius:16px;padding:20px;transition:all .2s;position:relative;overflow:hidden;}
@@ -291,6 +290,14 @@ input[type=date]{color-scheme:dark;}
 <div id="toast-container"></div>
 
 <!-- APP -->
+<div class="mobile-topbar">
+  <div style="font-family:'Playfair Display',serif;font-size:17px;background:linear-gradient(135deg,#fff,var(--violet-glow));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;letter-spacing:-.3px;">CLUTCH REELS</div>
+  <div style="display:flex;gap:12px;align-items:center;">
+    <button onclick="openSearch()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px;line-height:1;">🔍</button>
+    <div id="mob-avatar" onclick="document.querySelector('[data-panel=usuarios]')?.click()" style="width:34px;height:34px;border-radius:9px;background:rgba(168,85,247,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--violet);cursor:pointer;">?</div>
+  </div>
+</div>
+
 <div class="app-layout">
 <aside class="sidebar">
   <div class="sidebar-logo">
@@ -403,6 +410,7 @@ input[type=date]{color-scheme:dark;}
       <select id="prod-fil-miembro-t" onchange="renderTablaProd()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los responsables</option></select>
       <select id="prod-fil-estado-t" onchange="renderTablaProd()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:7px;color:var(--text-secondary);padding:5px 8px;font-size:11px;font-family:inherit;"><option value="">Todos los estados</option></select>
       <button class="btn btn-sm" onclick="limpiarFiltrosTabla()" style="padding:5px 10px;font-size:11px;">✕</button>
+      <button id="btn-ver-completados" class="btn btn-sm" onclick="toggleCompletados()" style="margin-left:auto;border-color:var(--text-muted);color:var(--text-muted);padding:5px 10px;font-size:11px;">Ver completados</button>
     </div>
     <div id="prod-acordeon"></div>
   </div>
@@ -467,6 +475,9 @@ input[type=date]{color-scheme:dark;}
   </div>
 
   <div class="sub-panel active" id="sub-resumen">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="abrirFacturarTodosPacks()">⚡ Facturar packs del mes</button>
+    </div>
     <div class="grid-3" id="fin-por-cliente"></div>
   </div>
 
@@ -712,6 +723,9 @@ input[type=date]{color-scheme:dark;}
 </div>
 
 <style>
+/* ══ MOBILE TOP BAR ══ */
+.mobile-topbar{display:none;}
+
 .nav-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--danger);color:#fff;font-size:9px;font-weight:700;border-radius:10px;min-width:16px;height:16px;padding:0 4px;margin-left:6px;line-height:1;}
 .search-group{padding:6px 16px 2px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);font-weight:600;}
 .search-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;transition:background .1s;}
@@ -721,6 +735,162 @@ input[type=date]{color-scheme:dark;}
 .search-item-sub{font-size:11px;color:var(--text-muted);margin-top:1px;}
 .carga-bar{height:10px;border-radius:5px;overflow:hidden;background:var(--bg-elevated);margin-top:4px;}
 .carga-fill{height:100%;border-radius:5px;transition:width .3s;}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 900px)
+══════════════════════════════════════════ */
+@media(max-width:900px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:repeat(2,1fr);}
+  .app-layout{flex-direction:column;}
+  .sidebar{width:100%;height:auto;position:sticky;top:0;padding:12px 16px;z-index:60;}
+  .sidebar-logo,.sidebar-user,.sidebar>button,.sidebar-stats{display:none!important;}
+  .nav-clutch{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;gap:2px;padding:0;scrollbar-width:none;}
+  .nav-clutch::-webkit-scrollbar{display:none;}
+  .nav-item{white-space:nowrap;flex-shrink:0;border-left:none;border-bottom:2px solid transparent;border-radius:8px;padding:7px 12px;font-size:12px;}
+  .nav-item.active{border-left:none;border-bottom-color:var(--violet);background:rgba(168,85,247,.12);}
+  .panel{padding:20px 16px;}
+}
+
+/* ══════════════════════════════════════════
+   RESPONSIVE — MÓVIL (≤ 600px)
+══════════════════════════════════════════ */
+@media(max-width:600px){
+  /* Top bar móvil */
+  .mobile-topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:11px 16px;background:var(--bg-card);
+    border-bottom:1px solid var(--border-dim);
+    position:sticky;top:0;z-index:70;width:100%;
+  }
+
+  /* Layout */
+  .app-layout{flex-direction:column;padding-bottom:68px;}
+
+  /* Sidebar → bottom nav */
+  .sidebar{
+    position:fixed;bottom:0;left:0;right:0;top:auto;
+    width:100%;height:auto;max-height:64px;
+    border-right:none;border-top:1px solid var(--border-dim);
+    padding:0;overflow:visible;z-index:70;
+    background:var(--bg-card);
+    flex-direction:column;
+  }
+  .sidebar-logo,.sidebar-user,.sidebar>button,.sidebar-stats{display:none!important;}
+
+  /* Nav bottom */
+  .nav-clutch{
+    flex-direction:row;flex-wrap:nowrap;overflow-x:auto;
+    gap:0;width:100%;padding:0 4px;
+    scrollbar-width:none;height:64px;align-items:center;
+  }
+  .nav-clutch::-webkit-scrollbar{display:none;}
+  .nav-item{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;min-width:58px;max-width:72px;height:56px;
+    padding:4px 4px 6px;font-size:9px;font-weight:500;
+    border-radius:0;border-left:none;border-bottom:none;
+    border-top:2px solid transparent;color:var(--text-muted);
+    white-space:nowrap;flex-shrink:0;transition:all .15s;
+    position:relative;
+  }
+  .nav-item:hover{background:rgba(168,85,247,.08);color:var(--text-secondary);}
+  .nav-item.active{
+    color:var(--violet-glow);background:rgba(168,85,247,.1);
+    border-left:none;border-top-color:var(--violet);font-weight:700;
+  }
+  .nav-badge{position:absolute;top:6px;right:8px;margin-left:0;}
+
+  /* Panels */
+  .panel{padding:14px 12px;}
+  .section-title{font-size:20px;margin-bottom:16px;}
+  .eyebrow{margin-bottom:4px;}
+  .panel-header{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:14px;}
+
+  /* Grids */
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;gap:10px;}
+  .grid-auto{grid-template-columns:repeat(2,1fr);gap:10px;}
+
+  /* Widgets */
+  .widget{padding:14px;border-radius:12px;}
+  .widget:hover{transform:none;}
+  .widget-value{font-size:26px;}
+  .widget-title{font-size:10px;margin-bottom:8px;}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;margin-bottom:16px;}
+  table{min-width:540px;}
+  th{padding:10px 10px;font-size:10px;}
+  td{padding:9px 10px;font-size:12px;}
+
+  /* Kanban */
+  .kanban{display:flex;overflow-x:auto;flex-wrap:nowrap;gap:10px;padding-bottom:8px;-webkit-overflow-scrolling:touch;}
+  .kanban::-webkit-scrollbar{height:3px;}
+  .kanban::-webkit-scrollbar-thumb{background:var(--border-dim);border-radius:2px;}
+  .kanban-col{min-width:200px;flex-shrink:0;}
+  .kanban-header{font-size:11px;padding:8px 12px;}
+  .kanban-card{padding:10px;}
+
+  /* Modals → bottom sheet */
+  .modal-overlay{align-items:flex-end;padding:0;}
+  .modal{
+    border-radius:20px 20px 0 0!important;
+    max-width:100%;width:100%;max-height:92vh;
+    overflow-y:auto;margin:0;padding:20px 16px;
+  }
+  .modal-lg{max-height:96vh;}
+  .modal-close{top:14px;right:16px;}
+  .modal-title{font-size:17px;margin-bottom:16px;}
+
+  /* Forms */
+  .form-grid{grid-template-columns:1fr!important;gap:12px;}
+  .form-group.full{grid-column:1!important;}
+  .form-group input,.form-group select,.form-group textarea{font-size:15px;padding:10px 12px;}
+  .form-actions{flex-direction:column;gap:8px;}
+  .form-actions .btn{width:100%;justify-content:center;padding:12px;}
+
+  /* Sub-tabs */
+  .sub-tabs{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none;}
+  .sub-tabs::-webkit-scrollbar{display:none;}
+  .sub-tab{white-space:nowrap;flex-shrink:0;font-size:12px;padding:7px 12px;}
+
+  /* Semana grid */
+  .semana-grid{display:flex!important;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
+  .dia-card{min-width:88px;flex-shrink:0;}
+
+  /* Calendario */
+  .cal-toolbar{flex-direction:column;gap:10px;align-items:flex-start;}
+  .cal-filters{flex-wrap:wrap;gap:8px;}
+  .cal-grid{grid-template-columns:repeat(7,1fr);}
+  .cal-cell{min-height:52px;padding:4px;}
+  .cal-day-num{font-size:11px;}
+  .cal-ev{font-size:9px;padding:1px 3px;}
+
+  /* Clientes grid */
+  #clientes-grid{grid-template-columns:1fr!important;}
+  .cliente-card{padding:14px;}
+
+  /* Modal de búsqueda */
+  #modal-search > div{width:100%;border-radius:0;min-height:50vh;}
+  #modal-search{align-items:flex-start;}
+
+  /* Ficha cliente */
+  .ficha-grid{grid-template-columns:1fr!important;}
+
+  /* Botones */
+  .btn{font-size:12px;padding:7px 12px;}
+  .btn-sm{font-size:11px;padding:4px 8px;}
+
+  /* Acordeón producción */
+  #prod-acordeon > div > div:first-child{padding:12px 12px;}
+
+  /* Payroll cards */
+  #payroll-cards{grid-template-columns:1fr!important;}
+
+  /* Reportes KPIs */
+  #rep-kpis{grid-template-columns:repeat(2,1fr)!important;}
+  .kpi-card{padding:12px 10px;}
+  .kpi-val{font-size:20px;}
+}
 </style>
 
 <script>
@@ -1321,6 +1491,7 @@ function openFicha(id) {
       <div style="display:flex;flex-direction:column;gap:6px;">
         <button class="btn btn-sm" onclick="closeModal('modal-ficha');openModal('cliente-form',${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️ Editar</button>
         <button class="btn btn-sm" onclick="copyClientLink('${c.id}')" style="border-color:var(--violet);color:var(--violet);">🔗 Link cliente</button>
+        ${c.client_type==='package'?`<button class="btn btn-sm" onclick="abrirFacturarMes('${c.id}')" style="border-color:var(--success);color:var(--success);">💳 Facturar mes</button>`:''}
         <button class="btn btn-sm" onclick="archivarCliente('${c.id}',${c.pipeline==='Archivado'})" style="border-color:var(--text-muted);color:var(--text-muted);">${c.pipeline==='Archivado'?'↩ Desarchivar':'📦 Archivar'}</button>
       </div>
     </div>
@@ -1373,6 +1544,8 @@ function openFicha(id) {
       <div class="ficha-section-title">🎬 Entregables (${videos.length})</div>
       ${videos.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse;">${videos.slice(0,5).map(v=>`<tr><td style="padding:6px 0;color:var(--text-primary);">${iF(v.formato)} ${v.titulo}</td><td style="color:var(--text-muted);">${v.deadline||'—'}</td><td><span class="badge ${estadoBadge(v.estado)}">${v.estado}</span></td></tr>`).join('')}</table>` : '<div class="empty-state" style="padding:16px;">Sin entregables</div>'}
     </div>
+
+    ${buildEstadoCuenta(c)}
 
     <div class="ficha-section">
       <div class="ficha-section-title">📝 Notas</div>
@@ -2209,6 +2382,48 @@ function limpiarFiltrosTabla() {
 
 // IDs de proyectos expandidos (persiste entre renders)
 const _tablaExpanded = new Set();
+let _verCompletados = false;
+
+function toggleCompletados() {
+  _verCompletados = !_verCompletados;
+  const btn = document.getElementById('btn-ver-completados');
+  if (btn) {
+    btn.textContent = _verCompletados ? '✅ Completados visibles' : 'Ver completados';
+    btn.style.borderColor = _verCompletados ? 'var(--success)' : '';
+    btn.style.color = _verCompletados ? 'var(--success)' : '';
+  }
+  renderTablaProd();
+}
+
+async function completarProyecto(id) {
+  const proj = S.projects.find(x => x.id === id); if (!proj) return;
+  const pendientes = S.deliverables.filter(d => d.project_id === id && d.estado !== 'Finalizado');
+  const msg = pendientes.length
+    ? `¿Marcar "${proj.nombre}" como completado?\n\nHay ${pendientes.length} entregable${pendientes.length!==1?'s':''} sin finalizar — se marcarán como Finalizados automáticamente.`
+    : `¿Marcar "${proj.nombre}" como completado?`;
+  if (!confirm(msg)) return;
+  try {
+    await dbUpdate('projects', id, { estado: 'completado' });
+    proj.estado = 'completado';
+    if (pendientes.length) {
+      await Promise.all(pendientes.map(d => dbUpdate('deliverables', d.id, { estado: 'Finalizado' })));
+      pendientes.forEach(d => d.estado = 'Finalizado');
+    }
+    _tablaExpanded.delete(id);
+    renderAll();
+    toast(`"${proj.nombre}" completado ✓`);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function reabrirProyecto(id) {
+  const proj = S.projects.find(x => x.id === id); if (!proj) return;
+  try {
+    await dbUpdate('projects', id, { estado: 'activo' });
+    proj.estado = 'activo';
+    renderTablaProd();
+    toast('Proyecto reactivado');
+  } catch(e) { toast(e.message, 'error'); }
+}
 
 function toggleProyectoTabla(pid) {
   if (_tablaExpanded.has(pid)) _tablaExpanded.delete(pid);
@@ -2228,12 +2443,13 @@ function renderTablaProd() {
   const filMiem = selMiem?.value || '';
   const filEst  = selEst?.value  || '';
 
-  // Solo proyectos activos
-  const proyActivos = S.projects.filter(p => p.estado === 'activo' || p.estado === 'en_progreso');
-  if (!proyActivos.length) {
-    document.getElementById('prod-tbody').innerHTML = '';
-    const wrap = document.getElementById('prod-tabla-panel').querySelector('.table-wrap');
-    if (wrap) wrap.innerHTML = '<div class="empty-state">Sin proyectos activos.</div>';
+  const proyActivos     = S.projects.filter(p => p.estado === 'activo' || p.estado === 'en_progreso' || p.estado === 'pausado');
+  const proyCompletados = S.projects.filter(p => p.estado === 'completado');
+  const proyMostrar     = _verCompletados ? proyCompletados : proyActivos;
+
+  if (!proyMostrar.length) {
+    const acc = document.getElementById('prod-acordeon');
+    if (acc) acc.innerHTML = `<div class="empty-state">${_verCompletados ? 'Sin proyectos completados.' : 'Sin proyectos activos.'}</div>`;
     return;
   }
 
@@ -2252,7 +2468,8 @@ function renderTablaProd() {
   }
 
   let html = '';
-  proyActivos.forEach(p => {
+  proyMostrar.forEach(p => {
+    const esCompletado = p.estado === 'completado';
     let ents = S.deliverables.filter(d => d.project_id === p.id);
     if (filCli  && p.client_id !== filCli) return;
     if (filMiem) ents = ents.filter(d => d.team_member_id === filMiem);
@@ -2267,15 +2484,17 @@ function renderTablaProd() {
     const expanded  = _tablaExpanded.has(p.id);
     const barColor  = pct >= 80 ? 'var(--success)' : 'var(--violet)';
 
-    html += `<div style="border:1px solid var(--border-dim);border-radius:14px;margin-bottom:10px;overflow:hidden;">
+    html += `<div style="border:1px solid ${esCompletado?'rgba(168,230,207,.2)':'var(--border-dim)'};border-radius:14px;margin-bottom:10px;overflow:hidden;${esCompletado?'opacity:.75;':''}">
       <!-- CABECERA COLAPSABLE -->
       <div onclick="toggleProyectoTabla('${p.id}')" style="display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;background:var(--bg-card);transition:background .15s;" onmouseover="this.style.background='var(--bg-elevated)'" onmouseout="this.style.background='var(--bg-card)'">
         <span style="font-size:13px;color:var(--text-muted);flex-shrink:0;transition:transform .2s;transform:rotate(${expanded?'90':'0'}deg);">▶</span>
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <span style="font-weight:700;font-size:14px;color:var(--text-primary);">${p.nombre}</span>
+            ${esCompletado ? '<span style="font-size:14px;">✅</span>' : ''}
+            <span style="font-weight:700;font-size:14px;color:${esCompletado?'var(--text-secondary)':'var(--text-primary)'};">${p.nombre}</span>
             <span style="font-size:11px;color:var(--text-muted);">${clientName(p.client_id)}</span>
-            ${atrasados > 0 ? `<span class="badge badge-late">⚠️ ${atrasados} atrasado${atrasados>1?'s':''}</span>` : ''}
+            ${atrasados > 0 && !esCompletado ? `<span class="badge badge-late">⚠️ ${atrasados} atrasado${atrasados>1?'s':''}</span>` : ''}
+            ${esCompletado ? '<span class="badge badge-ok">Completado</span>' : ''}
           </div>
           <div style="display:flex;align-items:center;gap:10px;margin-top:7px;">
             <div style="flex:1;height:5px;background:var(--bg-elevated);border-radius:3px;overflow:hidden;max-width:200px;">
@@ -2285,7 +2504,14 @@ function renderTablaProd() {
             <span style="font-size:11px;color:var(--text-muted);">${ents.length} entregable${ents.length!==1?'s':''}</span>
           </div>
         </div>
-        <button class="btn btn-sm" onclick="event.stopPropagation();openModal('entregable-form',{project_id:'${p.id}',client_id:'${p.client_id}'})" style="flex-shrink:0;">➕</button>
+        <div style="display:flex;gap:5px;flex-shrink:0;" onclick="event.stopPropagation()">
+          ${!esCompletado ? `
+            <button class="btn btn-sm" onclick="openModal('entregable-form',{project_id:'${p.id}',client_id:'${p.client_id}'})" title="Agregar entregable">➕</button>
+            <button class="btn btn-sm" onclick="completarProyecto('${p.id}')" style="border-color:var(--success);color:var(--success);" title="Marcar como completado">✓ Completar</button>
+          ` : `
+            <button class="btn btn-sm" onclick="reabrirProyecto('${p.id}')" style="border-color:var(--text-muted);color:var(--text-muted);" title="Reabrir proyecto">↩ Reabrir</button>
+          `}
+        </div>
       </div>
       <!-- ENTREGABLES -->
       ${expanded ? `<div style="border-top:1px solid var(--border-dim);">
@@ -2328,6 +2554,13 @@ function renderTablaProd() {
   });
 
   existingAccordion.innerHTML = html || '<div class="empty-state">Sin proyectos que coincidan con los filtros.</div>';
+
+  // Actualizar el contador en el botón toggle
+  const btnComp = document.getElementById('btn-ver-completados');
+  if (btnComp && !_verCompletados) {
+    const n = S.projects.filter(p => p.estado === 'completado').length;
+    btnComp.textContent = n > 0 ? `Ver completados (${n})` : 'Ver completados';
+  }
 }
 
 function fmtMes(ym) {
@@ -3180,6 +3413,215 @@ function guardarComoPlantilla() {
 }
 
 // ════════════════════════════════════
+// ESTADO DE CUENTA & FACTURACIÓN PACKS
+// ════════════════════════════════════
+
+function buildEstadoCuenta(c) {
+  if (c.client_type !== 'package') return '';
+
+  // Últimos 6 meses
+  const meses = [];
+  const hoy = new Date();
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+
+  const rows = meses.map(periodo => {
+    const inv = S.invoices.find(i => i.client_id === c.id && (i.periodo || '').startsWith(periodo));
+    const ents = S.deliverables.filter(d => d.client_id === c.id && (d.deadline || '').startsWith(periodo));
+    const done = ents.filter(d => d.estado === 'Finalizado').length;
+    const total = ents.length;
+
+    let estadoHtml, accionHtml;
+    if (!inv) {
+      estadoHtml = `<span style="font-size:11px;color:var(--text-muted);background:var(--bg-elevated);padding:3px 9px;border-radius:12px;">Sin factura</span>`;
+      accionHtml = `<button class="btn btn-sm" onclick="abrirFacturarMes('${c.id}','${periodo}')" style="border-color:var(--success);color:var(--success);font-size:11px;padding:3px 10px;">💳 Facturar</button>`;
+    } else if (inv.estado === 'pagado') {
+      estadoHtml = `<span class="badge badge-ok">✅ Pagado</span>`;
+      accionHtml = `<span style="font-size:10px;color:var(--text-muted);">${inv.fecha_pago||''}</span>`;
+    } else if (inv.estado === 'atrasado') {
+      estadoHtml = `<span class="badge badge-late">❌ Atrasado</span>`;
+      accionHtml = `<button class="btn btn-sm" onclick="marcarPagado('${inv.id}')" style="border-color:var(--success);color:var(--success);font-size:11px;padding:3px 10px;">✓ Cobrar</button>`;
+    } else {
+      estadoHtml = `<span class="badge badge-risk">⏳ Pendiente</span>`;
+      accionHtml = `<button class="btn btn-sm" onclick="marcarPagado('${inv.id}')" style="border-color:var(--success);color:var(--success);font-size:11px;padding:3px 10px;">✓ Cobrar</button>`;
+    }
+
+    return `<div style="display:grid;grid-template-columns:90px 1fr 120px 90px;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-dim);">
+      <span style="font-size:12px;font-weight:600;color:var(--violet-glow);">${fmtMes(periodo)}</span>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:5px;background:var(--bg-elevated);border-radius:3px;overflow:hidden;max-width:120px;">
+            <div style="height:100%;width:${total?Math.round((done/total)*100):0}%;background:${done===total&&total>0?'var(--success)':'var(--violet)'};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);">${done}/${total} entregables</span>
+        </div>
+      </div>
+      <div>${estadoHtml}</div>
+      <div style="display:flex;justify-content:flex-end;">${accionHtml}</div>
+    </div>`;
+  });
+
+  return `<div class="ficha-section">
+    <div class="ficha-section-title" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>💳 Estado de cuenta</span>
+      <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${fmtMoney(c.ingreso_mensual)}/mes</span>
+    </div>
+    <div>${rows.join('')}</div>
+  </div>`;
+}
+
+function abrirFacturarMes(clientId, periodo) {
+  const mesActual = isoToday().slice(0, 7);
+  const p = periodo || mesActual;
+  const c = S.clients.find(x => x.id === clientId); if (!c) return;
+
+  // Entregables del período sin factura
+  const ents = S.deliverables.filter(d =>
+    d.client_id === clientId &&
+    (d.deadline || '').startsWith(p) &&
+    !d.invoice_id
+  );
+
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">💳 Facturar ${fmtMes(p)}</div>
+    <div style="background:var(--bg-elevated);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;color:var(--text-primary);">${c.name}</span>
+        <span style="font-size:18px;font-family:'Playfair Display',serif;color:var(--violet);font-weight:700;">${fmtMoney(c.ingreso_mensual)}</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);">Pack mensual · ${fmtMes(p)}</div>
+    </div>
+
+    <form class="form-grid" onsubmit="submitFacturaPack(event,'${clientId}','${p}')">
+      <div class="form-group"><label>Monto (EUR)</label><input name="monto" type="number" step="0.01" value="${c.ingreso_mensual||0}"></div>
+      <div class="form-group"><label>Vencimiento</label><input name="fecha_vencimiento" type="date" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,10)}"></div>
+      <div class="form-group full"><label>Concepto</label><input name="concepto" value="Pack mensual — ${fmtMes(p)}" required></div>
+      ${ents.length ? `
+      <div class="form-group full">
+        <label style="margin-bottom:8px;display:block;">Entregables a incluir (${ents.length})</label>
+        <div style="background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border-dim);padding:10px;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;">
+          ${ents.map(d => `
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--text-secondary);font-weight:400;text-transform:none;letter-spacing:0;">
+              <input type="checkbox" name="del_ids" value="${d.id}" checked style="width:auto;accent-color:var(--violet);">
+              <span>${iF(d.formato)} <strong style="color:var(--text-primary);">${d.titulo}</strong> <span class="badge ${estadoBadge(d.estado)}" style="margin-left:4px;">${d.estado}</span></span>
+            </label>`).join('')}
+        </div>
+      </div>` : '<div class="form-group full"><div style="font-size:12px;color:var(--text-muted);padding:8px 0;">Sin entregables del período sin facturar.</div></div>'}
+      <div class="form-group full"><label>Notas</label><textarea name="notas" placeholder="Opcional..."></textarea></div>
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Generar factura</button>
+      </div>
+    </form>`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function submitFacturaPack(e, clientId, periodo) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const delIds = fd.getAll('del_ids');
+  const f = Object.fromEntries(fd);
+  delete f.del_ids;
+  f.client_id = clientId;
+  f.periodo = periodo;
+  f.monto = parseFloat(f.monto) || 0;
+  f.estado = 'pendiente';
+  const btn = e.target.querySelector('[type=submit]');
+  btn.textContent = 'Generando...'; btn.disabled = true;
+  try {
+    const inv = await dbInsert('invoices', f);
+    S.invoices.unshift(inv);
+    if (delIds.length) {
+      await Promise.all(delIds.map(did => dbUpdate('deliverables', did, { invoice_id: inv.id })));
+      delIds.forEach(did => { const d = S.deliverables.find(x => x.id === did); if (d) d.invoice_id = inv.id; });
+    }
+    closeModal('modal-form');
+    renderAll();
+    toast(`Factura ${fmtMes(periodo)} generada ✓`);
+    // Reabrir ficha
+    openFicha(clientId);
+  } catch(err) { toast(err.message, 'error'); btn.textContent = 'Generar factura'; btn.disabled = false; }
+}
+
+// ── Facturación bulk de todos los packs del mes ──
+function abrirFacturarTodosPacks() {
+  const mesActual = isoToday().slice(0, 7);
+  const packClients = S.clients.filter(c => c.client_type === 'package' && c.pipeline === 'Activo');
+
+  const rows = packClients.map(c => {
+    const yaFacturado = S.invoices.find(i => i.client_id === c.id && (i.periodo || '').startsWith(mesActual));
+    const ents = S.deliverables.filter(d => d.client_id === c.id && (d.deadline || '').startsWith(mesActual) && !d.invoice_id);
+    return { c, yaFacturado, ents };
+  });
+
+  const sinFacturar = rows.filter(r => !r.yaFacturado);
+  const yaFacturados = rows.filter(r => r.yaFacturado);
+
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">⚡ Facturar packs — ${fmtMes(mesActual)}</div>
+    ${sinFacturar.length ? `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Se generará una factura pendiente por cada cliente. Podés cobrar individualmente desde la ficha.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+      ${sinFacturar.map(({c, ents}) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-elevated);border-radius:10px;padding:12px 14px;">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:var(--text-primary);">${c.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${ents.length} entregable${ents.length!==1?'s':''} del mes</div>
+          </div>
+          <span style="font-size:16px;font-family:'Playfair Display',serif;font-weight:700;color:var(--violet);">${fmtMoney(c.ingreso_mensual)}</span>
+        </div>`).join('')}
+    </div>
+    <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;display:flex;justify-content:space-between;">
+      <span style="font-size:13px;color:var(--text-secondary);">Total a facturar</span>
+      <span style="font-size:18px;font-family:'Playfair Display',serif;font-weight:700;color:var(--violet);">${fmtMoney(sinFacturar.reduce((a,{c})=>a+(parseFloat(c.ingreso_mensual)||0),0))}</span>
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;">
+      <button class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+      <button class="btn btn-primary" onclick="ejecutarFacturacionBulk('${mesActual}')">⚡ Generar ${sinFacturar.length} factura${sinFacturar.length!==1?'s':''}</button>
+    </div>` : `
+    <div style="text-align:center;padding:32px 0;">
+      <div style="font-size:32px;margin-bottom:12px;">✅</div>
+      <div style="font-size:14px;color:var(--text-secondary);">Todos los clientes pack ya tienen factura para ${fmtMes(mesActual)}</div>
+      ${yaFacturados.length ? `<div style="font-size:12px;color:var(--text-muted);margin-top:6px;">${yaFacturados.length} factura${yaFacturados.length!==1?'s':''} generada${yaFacturados.length!==1?'s':''}</div>` : ''}
+    </div>
+    <div class="form-actions" style="justify-content:flex-end;">
+      <button class="btn" onclick="closeModal('modal-form')">Cerrar</button>
+    </div>`}`;
+  document.getElementById('modal-form').classList.add('show');
+}
+
+async function ejecutarFacturacionBulk(periodo) {
+  const btn = document.querySelector('#modal-form .btn-primary');
+  if (btn) { btn.textContent = 'Generando...'; btn.disabled = true; }
+  const packClients = S.clients.filter(c => c.client_type === 'package' && c.pipeline === 'Activo');
+  let creados = 0;
+  try {
+    for (const c of packClients) {
+      const yaFacturado = S.invoices.find(i => i.client_id === c.id && (i.periodo || '').startsWith(periodo));
+      if (yaFacturado) continue;
+      const inv = await dbInsert('invoices', {
+        client_id: c.id, periodo, estado: 'pendiente', monto: parseFloat(c.ingreso_mensual)||0,
+        concepto: `Pack mensual — ${fmtMes(periodo)}`,
+        fecha_vencimiento: new Date(Date.now()+7*86400000).toISOString().slice(0,10)
+      });
+      S.invoices.unshift(inv);
+      // Vincular entregables del período
+      const ents = S.deliverables.filter(d => d.client_id === c.id && (d.deadline||'').startsWith(periodo) && !d.invoice_id);
+      if (ents.length) {
+        await Promise.all(ents.map(d => dbUpdate('deliverables', d.id, { invoice_id: inv.id })));
+        ents.forEach(d => d.invoice_id = inv.id);
+      }
+      creados++;
+    }
+    closeModal('modal-form');
+    renderAll();
+    toast(`${creados} factura${creados!==1?'s':''} generada${creados!==1?'s':''} ✓`);
+  } catch(err) { toast(err.message, 'error'); if (btn) { btn.textContent = 'Reintentar'; btn.disabled = false; } }
+}
+
+// ════════════════════════════════════
 // RENDER ALL
 // ════════════════════════════════════
 function renderAll() {
@@ -3259,6 +3701,8 @@ function applyRole() {
   document.getElementById('su-avatar').textContent = ini;
   document.getElementById('su-nombre').textContent = currentProfile?.nombre || currentUser?.email || '—';
   document.getElementById('su-rol').textContent = rol;
+  const mobAvatar = document.getElementById('mob-avatar');
+  if (mobAvatar) mobAvatar.textContent = ini;
 }
 
 async function bootApp(user) {
