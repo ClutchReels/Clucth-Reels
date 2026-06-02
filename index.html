@@ -519,19 +519,16 @@ input[type=date]{color-scheme:dark;}
       <select class="cal-filter-select" id="cal-cliente" onchange="renderCalendario()"><option value="">Todos los clientes</option></select>
       <select class="cal-filter-select" id="cal-estado" onchange="renderCalendario()">
         <option value="">Todos los estados</option>
-        <option>Idea</option><option>En edición</option><option>Revisión interna</option>
-        <option>Enviado</option><option>Correcciones</option><option>Finalizado</option>
+        <option>Pendiente</option><option>Revisión interna</option><option>Aprobado</option><option>Finalizado</option>
       </select>
     </div>
   </div>
   <div id="cal-grid"></div>
   <div class="cal-leyenda">
     <strong style="color:var(--text-primary);">Estados:</strong>
-    <span class="leyenda-item"><span class="leyenda-dot" style="background:#6a6a6a;"></span>Idea</span>
-    <span class="leyenda-item"><span class="leyenda-dot" style="background:var(--violet);"></span>En edición</span>
-    <span class="leyenda-item"><span class="leyenda-dot" style="background:#3b82f6;"></span>Revisión</span>
-    <span class="leyenda-item"><span class="leyenda-dot" style="background:var(--warning);"></span>Enviado</span>
-    <span class="leyenda-item"><span class="leyenda-dot" style="background:var(--danger);"></span>Correcciones</span>
+    <span class="leyenda-item"><span class="leyenda-dot" style="background:#6a6a6a;"></span>Pendiente</span>
+    <span class="leyenda-item"><span class="leyenda-dot" style="background:#3b82f6;"></span>Revisión interna</span>
+    <span class="leyenda-item"><span class="leyenda-dot" style="background:var(--warning);"></span>Aprobado</span>
     <span class="leyenda-item"><span class="leyenda-dot" style="background:#10b981;"></span>Finalizado</span>
   </div>
 </div>
@@ -908,7 +905,7 @@ const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], 
 
 const FORMATOS = ['Video','Reel','VSL','Anuncio','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',VSL:'🎥',Anuncio:'📣',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
-const ESTADOS  = ['Idea','Aprobación guión','En edición','Revisión interna','Enviado','Correcciones','Finalizado'];
+const ESTADOS  = ['Pendiente','Revisión interna','Aprobado','Finalizado'];
 const ROLES    = ['Editor de video','Motion designer','Fotógrafo','Copywriter','Community manager','Estratega','Account manager','Paid specialist'];
 const STAGES_CRM = ['Prospecto','Contactado','Propuesta enviada','Negociación','Ganado','Perdido'];
 const CATS_EGR = ['Sueldos','Freelancers','Software','Marketing','Oficina','Producción','Otros'];
@@ -1556,7 +1553,7 @@ function openFicha(id) {
 }
 
 function estadoBadge(est) {
-  const m = {'Idea':'badge-gray','Aprobación guión':'badge-risk','En edición':'badge-active','Revisión interna':'badge-active','Enviado':'badge-risk','Correcciones':'badge-late','Finalizado':'badge-ok'};
+  const m = {'Pendiente':'badge-gray','Revisión interna':'badge-active','Aprobado':'badge-risk','Finalizado':'badge-ok'};
   return m[est]||'badge-gray';
 }
 
@@ -1788,7 +1785,7 @@ async function submitProyecto(e, id, clientId) {
               tipo:            tpl.tipo || '',
               client_id:       cid,
               project_id:      r.id,
-              estado:          'Idea',
+              estado:          'Pendiente',
               team_member_id:  defMember,
               precio_unitario: parseFloat(tpl.precio_unitario)||0,
               horas_estimadas: parseFloat(tpl.horas_estimadas)||0,
@@ -2884,7 +2881,7 @@ function renderCalendario() {
   const diasMes = new Date(anio,mes+1,0).getDate();
   const offset = primerDia.getDay()===0?6:primerDia.getDay()-1;
   const hoyIso = isoToday();
-  const evClase = {Idea:'cal-ev-idea','En edición':'cal-ev-edicion','Revisión interna':'cal-ev-revision',Enviado:'cal-ev-enviado',Correcciones:'cal-ev-correcciones',Finalizado:'cal-ev-finalizado'};
+  const evClase = {Pendiente:'cal-ev-idea','Revisión interna':'cal-ev-revision',Aprobado:'cal-ev-enviado',Finalizado:'cal-ev-finalizado'};
 
   let html = '<div class="cal-grid">';
   ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].forEach(d=>html+=`<div class="cal-hd">${d}</div>`);
