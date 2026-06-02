@@ -74,13 +74,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background-im
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;}
-.b-idea{background:rgba(106,106,106,.15);color:var(--muted);}
-.b-editing{background:rgba(168,85,247,.12);color:var(--violet);}
-.b-approval{background:rgba(255,217,61,.12);color:var(--warning);border:1px solid rgba(255,217,61,.3);animation:blink 2s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
-.b-sent{background:rgba(192,132,252,.1);color:var(--glow);}
-.b-fix{background:rgba(255,107,107,.12);color:var(--danger);}
+.b-pendiente{background:rgba(106,106,106,.15);color:var(--muted);}
+.b-revision{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3);}
+.b-aprobado{background:rgba(168,85,247,.12);color:var(--violet);}
 .b-done{background:rgba(168,230,207,.1);color:var(--success);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* APPROVE BUTTON */
+.btn-aprobar{background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(96,165,250,.12));border:1px solid rgba(59,130,246,.4);color:#60a5fa;font-size:10px;font-weight:700;padding:4px 12px;border-radius:20px;cursor:pointer;transition:all .2s;letter-spacing:.3px;font-family:inherit;white-space:nowrap;flex-shrink:0;}
+.btn-aprobar:hover{background:rgba(59,130,246,.3);border-color:#60a5fa;color:#fff;}
+.btn-aprobar:active{transform:scale(.96);}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--elevated);border:1px solid rgba(168,85,247,.4);border-radius:12px;padding:12px 22px;font-size:13px;color:var(--text);z-index:999;pointer-events:none;animation:toast-in .2s ease;}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
 /* MÉTRICAS */
 .kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px;}
@@ -164,13 +171,10 @@ const ICONS = { Video:'🎬', Reel:'📱', Foto:'📸', Carrusel:'🎨', Copy:'�
 function iF(f){ return ICONS[f] || '📄'; }
 
 const ESTADO_BADGE = {
-  'Idea':             { label: 'En proceso',     cls: 'b-idea' },
-  'Aprobación guión': { label: '✍️ Aprobá',     cls: 'b-approval' },
-  'En edición':       { label: 'En edición',     cls: 'b-editing' },
-  'Revisión interna': { label: 'Revisión final', cls: 'b-editing' },
-  'Enviado':          { label: 'Enviado ✓',      cls: 'b-sent' },
-  'Correcciones':     { label: 'Correcciones',   cls: 'b-fix' },
-  'Finalizado':       { label: 'Listo ✓',        cls: 'b-done' },
+  'Pendiente':        { label: 'En producción',  cls: 'b-pendiente' },
+  'Revisión interna': { label: '👁 Para revisar', cls: 'b-revision'  },
+  'Aprobado':         { label: 'Aprobado ✓',     cls: 'b-aprobado'  },
+  'Finalizado':       { label: 'Entregado ✓',    cls: 'b-done'      },
 };
 
 function fmtMes(ym) {
@@ -218,9 +222,9 @@ function renderShell() {
   const stageEl = document.getElementById('top-stage');
   if (pipeline && pipeline !== 'Archivado') { stageEl.textContent = pipeline; stageEl.style.display = ''; }
 
-  const pendApproval = DATA.deliverables.filter(d => d.estado === 'Aprobación guión').length;
-  const alertHtml = pendApproval > 0
-    ? `<div class="alert-banner"><span style="font-size:20px;">✍️</span><span>Tenés <strong>${pendApproval} ${pendApproval===1?'guión':'guiones'}</strong> esperando tu aprobación.</span></div>`
+  const pendReview = DATA.deliverables.filter(d => d.estado === 'Revisión interna').length;
+  const alertHtml = pendReview > 0
+    ? `<div class="alert-banner"><span style="font-size:20px;">👁</span><span>Tenés <strong>${pendReview} ${pendReview===1?'contenido':'contenidos'}</strong> listo${pendReview===1?'':'s'} para revisar y aprobar.</span></div>`
     : '';
 
   document.getElementById('app').innerHTML = `
@@ -233,7 +237,7 @@ function renderShell() {
           ${pipeline ? `<div class="client-stage">● ${pipeline}</div>` : ''}
         </div>
       </div>
-      ${alertHtml}
+      <div id="alert-wrap">${alertHtml}</div>
     </div>
     <div class="tabs-wrap">
       <div class="tabs">
@@ -291,14 +295,17 @@ function buildWorkspace() {
       </div>
       <div class="del-list">
         ${linked.length ? linked.map((d, i) => {
-          const info = ESTADO_BADGE[d.estado] || { label: d.estado, cls: 'b-idea' };
+          const info = ESTADO_BADGE[d.estado] || { label: d.estado, cls: 'b-pendiente' };
           const deadline = d.deadline ? `<span class="del-deadline">${d.deadline.slice(5).replace('-','/')}</span>` : '';
+          const action = d.estado === 'Revisión interna'
+            ? `<button class="btn-aprobar" onclick="aprobarEntregable('${d.id}')">✓ Aprobar</button>`
+            : `<span class="badge ${info.cls}">${info.label}</span>`;
           return `<div class="del-item">
             <span class="del-num">${i+1}</span>
             <span class="del-icon">${iF(d.formato)}</span>
             <span class="del-title">${d.titulo}</span>
             ${deadline}
-            <span class="badge ${info.cls}">${info.label}</span>
+            ${action}
           </div>`;
         }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Sin entregables cargados aún.</div>'}
       </div>
@@ -312,11 +319,14 @@ function buildWorkspace() {
     <div class="proj-card">
       <div class="del-list">
         ${sinProyecto.map(d => {
-          const info = ESTADO_BADGE[d.estado] || { label: d.estado, cls: 'b-idea' };
+          const info = ESTADO_BADGE[d.estado] || { label: d.estado, cls: 'b-pendiente' };
+          const action = d.estado === 'Revisión interna'
+            ? `<button class="btn-aprobar" onclick="aprobarEntregable('${d.id}')">✓ Aprobar</button>`
+            : `<span class="badge ${info.cls}">${info.label}</span>`;
           return `<div class="del-item">
             <span class="del-icon">${iF(d.formato)}</span>
             <span class="del-title">${d.titulo}</span>
-            <span class="badge ${info.cls}">${info.label}</span>
+            ${action}
           </div>`;
         }).join('')}
       </div>
@@ -509,6 +519,37 @@ function buildProspeccion() {
   }
 
   return html;
+}
+
+function updateAlertBanner() {
+  const el = document.getElementById('alert-wrap');
+  if (!el) return;
+  const pendReview = DATA.deliverables.filter(d => d.estado === 'Revisión interna').length;
+  el.innerHTML = pendReview > 0
+    ? `<div class="alert-banner"><span style="font-size:20px;">👁</span><span>Tenés <strong>${pendReview} ${pendReview===1?'contenido':'contenidos'}</strong> listo${pendReview===1?'':'s'} para revisar y aprobar.</span></div>`
+    : '';
+}
+
+async function aprobarEntregable(id) {
+  try {
+    const { error } = await sb.from('deliverables').update({ estado: 'Aprobado' }).eq('id', id);
+    if (error) throw error;
+    const d = DATA.deliverables.find(x => x.id === id);
+    if (d) d.estado = 'Aprobado';
+    renderTab('workspace');
+    updateAlertBanner();
+    toast('✓ Contenido aprobado');
+  } catch(e) {
+    toast('Error al aprobar. Intentá de nuevo.');
+  }
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 }
 
 function showError(msg) {
