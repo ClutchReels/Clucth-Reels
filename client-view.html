@@ -141,6 +141,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background-im
 .onb-step-text{color:var(--sub);}
 .onb-step.done .onb-step-text{color:var(--text);}
 
+.met-tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:20px;}
+.met-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .15s;}
+.met-tab:hover{color:var(--sub);}
+.met-tab.active{background:rgba(168,85,247,.18);color:var(--glow);font-weight:600;}
+.hist-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:4px;}
+.hist-table th{padding:8px 6px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:600;}
+.hist-table th:first-child{text-align:left;}
+.hist-table td{padding:10px 6px;text-align:right;border-bottom:1px solid rgba(42,42,42,.5);color:var(--sub);}
+.hist-table td:first-child{text-align:left;color:var(--text);}
+.hist-table tr:last-child td{border-bottom:none;}
 .empty{text-align:center;color:var(--muted);padding:48px 0;font-size:13px;line-height:1.6;}
 .loader-msg{text-align:center;color:var(--muted);padding:80px 0;font-size:13px;}
 .error-msg{text-align:center;color:var(--danger);padding:60px 20px;font-size:13px;line-height:1.7;}
@@ -362,58 +372,99 @@ function buildWorkspace() {
 // ══════════════════════════════
 // MÉTRICAS
 // ══════════════════════════════
+let activeMetTab = 'reels';
+
+function switchMetTab(tipo) {
+  activeMetTab = tipo;
+  const el = document.getElementById('tab-content');
+  if (el) { el.innerHTML = buildMetricas(); initMetricaCharts(); }
+}
+
 function buildMetricas() {
   const { reelMetrics, historiaMetrics } = DATA;
-  let html = '';
 
-  // ── REELS ──
-  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <div class="section-label" style="margin:0;">📱 Reels</div>
-    <button class="btn-aprobar" onclick="showPortalMetricaForm('reel')">➕ Cargar datos</button>
+  const tabReels = activeMetTab === 'reels';
+  let html = `<div class="met-tabs">
+    <div class="met-tab ${tabReels?'active':''}" onclick="switchMetTab('reels')">📱 Reels</div>
+    <div class="met-tab ${!tabReels?'active':''}" onclick="switchMetTab('historia')">📖 Historias</div>
   </div>`;
 
-  if (reelMetrics.length) {
-    const last = reelMetrics[reelMetrics.length-1];
-    const avgViews = Math.round(reelMetrics.reduce((a,r)=>a+(r.views_24h||0),0)/reelMetrics.length);
-    const avgRet   = (reelMetrics.reduce((a,r)=>a+(parseFloat(r.retencion_3s_24h)||0),0)/reelMetrics.length).toFixed(1);
-    const totLikes = reelMetrics.reduce((a,r)=>a+(r.likes_24h||0),0);
-    html += `<div class="kpi-grid" style="margin-bottom:14px;">
-      <div class="kpi-card"><div class="kpi-val">${(last.views_24h||0).toLocaleString()}</div><div class="kpi-label">Último · Views</div></div>
-      <div class="kpi-card"><div class="kpi-val">${avgViews.toLocaleString()}</div><div class="kpi-label">Views prom.</div></div>
-      <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
-      <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
-    </div>
-    <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
-      <div class="met-title">📊 Evolución Reels</div>
-      <canvas id="chart-reels" height="180"></canvas>
+  if (tabReels) {
+    html += `<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button class="btn-aprobar" onclick="showPortalMetricaForm('reel')">➕ Cargar datos</button>
     </div>`;
+
+    if (reelMetrics.length) {
+      const last = reelMetrics[reelMetrics.length-1];
+      const avgViews = Math.round(reelMetrics.reduce((a,r)=>a+(r.views_24h||0),0)/reelMetrics.length);
+      const avgRet   = (reelMetrics.reduce((a,r)=>a+(parseFloat(r.retencion_3s_24h)||0),0)/reelMetrics.length).toFixed(1);
+      const totLikes = reelMetrics.reduce((a,r)=>a+(r.likes_24h||0),0);
+      html += `<div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-card"><div class="kpi-val">${(last.views_24h||0).toLocaleString()}</div><div class="kpi-label">Último · Views</div></div>
+        <div class="kpi-card"><div class="kpi-val">${avgViews.toLocaleString()}</div><div class="kpi-label">Views prom.</div></div>
+        <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
+        <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
+      </div>
+      <div class="met-section" style="padding:16px 20px;margin-bottom:20px;">
+        <canvas id="chart-reels" height="200"></canvas>
+      </div>
+      <div class="section-label">Historial de Reels</div>
+      <div class="met-section" style="padding:0 4px;overflow-x:auto;">
+        <table class="hist-table">
+          <thead><tr><th>Fecha</th><th>Views 24h</th><th>Likes 24h</th><th>Guardados 24h</th><th>Compartidos 24h</th><th>Ret. 3s %</th></tr></thead>
+          <tbody>
+            ${[...reelMetrics].reverse().map(r=>`<tr>
+              <td>${r.fecha}</td>
+              <td>${(r.views_24h||0).toLocaleString()}</td>
+              <td>${(r.likes_24h||0).toLocaleString()}</td>
+              <td>${(r.guardados_24h||0).toLocaleString()}</td>
+              <td>${(r.compartidos_24h||0).toLocaleString()}</td>
+              <td>${r.retencion_3s_24h||0}%</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    } else {
+      html += `<div class="empty">Sin registros de Reels aún.<br>¡Cargá el primero para ver el análisis!</div>`;
+    }
+
   } else {
-    html += `<div class="empty" style="padding:28px 0;margin-bottom:20px;">Sin registros de Reels aún.<br>¡Cargá el primero para ver el análisis!</div>`;
-  }
-
-  // ── HISTORIAS ──
-  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <div class="section-label" style="margin:0;">📖 Historias</div>
-    <button class="btn-aprobar" onclick="showPortalMetricaForm('historia')" style="border-color:rgba(96,165,250,.4);color:#60a5fa;">➕ Cargar datos</button>
-  </div>`;
-
-  if (historiaMetrics.length) {
-    const last = historiaMetrics[historiaMetrics.length-1];
-    const avgAlcance = Math.round(historiaMetrics.reduce((a,h)=>a+(h.alcance||0),0)/historiaMetrics.length);
-    const totClics   = historiaMetrics.reduce((a,h)=>a+(h.clics_enlace||0),0);
-    const avgAbandono = Math.round(historiaMetrics.reduce((a,h)=>a+(h.abandonos||0),0)/historiaMetrics.length);
-    html += `<div class="kpi-grid" style="margin-bottom:14px;">
-      <div class="kpi-card"><div class="kpi-val">${(last.alcance||0).toLocaleString()}</div><div class="kpi-label">Último · Alcance</div></div>
-      <div class="kpi-card"><div class="kpi-val">${avgAlcance.toLocaleString()}</div><div class="kpi-label">Alcance prom.</div></div>
-      <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
-      <div class="kpi-card"><div class="kpi-val">${avgAbandono}</div><div class="kpi-label">Abandono prom.</div></div>
-    </div>
-    <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
-      <div class="met-title">📊 Evolución Historias</div>
-      <canvas id="chart-historias" height="180"></canvas>
+    html += `<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+      <button class="btn-aprobar" onclick="showPortalMetricaForm('historia')" style="border-color:rgba(96,165,250,.4);color:#60a5fa;">➕ Cargar datos</button>
     </div>`;
-  } else {
-    html += `<div class="empty" style="padding:28px 0;">Sin registros de Historias aún.<br>¡Cargá el primero para ver el análisis!</div>`;
+
+    if (historiaMetrics.length) {
+      const last = historiaMetrics[historiaMetrics.length-1];
+      const avgAlcance  = Math.round(historiaMetrics.reduce((a,h)=>a+(h.alcance||0),0)/historiaMetrics.length);
+      const totClics    = historiaMetrics.reduce((a,h)=>a+(h.clics_enlace||0),0);
+      const totAgendas  = historiaMetrics.reduce((a,h)=>a+(h.agendas||0),0);
+      html += `<div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-card"><div class="kpi-val">${(last.alcance||0).toLocaleString()}</div><div class="kpi-label">Último · Alcance</div></div>
+        <div class="kpi-card"><div class="kpi-val">${avgAlcance.toLocaleString()}</div><div class="kpi-label">Alcance prom.</div></div>
+        <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
+        <div class="kpi-card"><div class="kpi-val">${totAgendas}</div><div class="kpi-label">Agendas totales</div></div>
+      </div>
+      <div class="met-section" style="padding:16px 20px;margin-bottom:20px;">
+        <canvas id="chart-historias" height="200"></canvas>
+      </div>
+      <div class="section-label">Historial de Historias</div>
+      <div class="met-section" style="padding:0 4px;overflow-x:auto;">
+        <table class="hist-table">
+          <thead><tr><th>Fecha</th><th>Alcance</th><th>Agendas</th><th>Respuestas</th><th>Clics enlace</th></tr></thead>
+          <tbody>
+            ${[...historiaMetrics].reverse().map(h=>`<tr>
+              <td>${h.fecha}</td>
+              <td>${(h.alcance||0).toLocaleString()}</td>
+              <td>${h.agendas||0}</td>
+              <td>${h.respuestas||0}</td>
+              <td>${h.clics_enlace||0}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    } else {
+      html += `<div class="empty">Sin registros de Historias aún.<br>¡Cargá el primero para ver el análisis!</div>`;
+    }
   }
 
   return html;
@@ -570,16 +621,20 @@ function initMetricaCharts() {
       data: { labels, datasets: [
         { label:'Views 24h',       data: reels.map(r=>r.views_24h||0),
           borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.08)',
-          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#a855f7' },
+          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#a855f7',
+          borderDash:[] },
         { label:'Likes 24h',       data: reels.map(r=>r.likes_24h||0),
           borderColor:'#f472b6', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#f472b6' },
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#f472b6',
+          borderDash:[4,4] },
         { label:'Guardados 24h',   data: reels.map(r=>r.guardados_24h||0),
           borderColor:'#a8e6cf', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf' },
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf',
+          borderDash:[8,4] },
         { label:'Compartidos 24h', data: reels.map(r=>r.compartidos_24h||0),
           borderColor:'#fb923c', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#fb923c' },
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#fb923c',
+          borderDash:[8,4,2,4] },
       ]},
       options: chartOpts()
     }));
@@ -592,18 +647,22 @@ function initMetricaCharts() {
     if (el) _charts.push(new Chart(el, {
       type: 'line',
       data: { labels, datasets: [
-        { label:'Alcance',       data: hists.map(h=>h.alcance||0),
+        { label:'Alcance',      data: hists.map(h=>h.alcance||0),
           borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.08)',
-          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#60a5fa' },
-        { label:'Agendas',       data: hists.map(h=>h.agendas||0),
+          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#60a5fa',
+          borderDash:[] },
+        { label:'Agendas',      data: hists.map(h=>h.agendas||0),
           borderColor:'#a855f7', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#a855f7' },
-        { label:'Respuestas',    data: hists.map(h=>h.respuestas||0),
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a855f7',
+          borderDash:[4,4] },
+        { label:'Respuestas',   data: hists.map(h=>h.respuestas||0),
           borderColor:'#a8e6cf', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf' },
-        { label:'Clics enlace',  data: hists.map(h=>h.clics_enlace||0),
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf',
+          borderDash:[8,4] },
+        { label:'Clics enlace', data: hists.map(h=>h.clics_enlace||0),
           borderColor:'#ffd93d', backgroundColor:'transparent',
-          tension:0.4, pointRadius:4, pointBackgroundColor:'#ffd93d' },
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#ffd93d',
+          borderDash:[8,4,2,4] },
       ]},
       options: chartOpts()
     }));
