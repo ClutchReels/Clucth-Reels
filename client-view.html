@@ -383,13 +383,9 @@ function buildMetricas() {
       <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
       <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
     </div>
-    <div class="met-section" style="padding:16px 20px;margin-bottom:12px;">
-      <div class="met-title">📊 Views 24h</div>
-      <canvas id="chart-reel-views" height="160"></canvas>
-    </div>
     <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
-      <div class="met-title">🎯 Retención 3s %</div>
-      <canvas id="chart-reel-ret" height="140"></canvas>
+      <div class="met-title">📊 Evolución Reels</div>
+      <canvas id="chart-reels" height="180"></canvas>
     </div>`;
   } else {
     html += `<div class="empty" style="padding:28px 0;margin-bottom:20px;">Sin registros de Reels aún.<br>¡Cargá el primero para ver el análisis!</div>`;
@@ -412,13 +408,9 @@ function buildMetricas() {
       <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
       <div class="kpi-card"><div class="kpi-val">${avgAbandono}</div><div class="kpi-label">Abandono prom.</div></div>
     </div>
-    <div class="met-section" style="padding:16px 20px;margin-bottom:12px;">
-      <div class="met-title">📊 Alcance</div>
-      <canvas id="chart-hist-alcance" height="160"></canvas>
-    </div>
     <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
-      <div class="met-title">👁 Taps adelante vs Abandonos</div>
-      <canvas id="chart-hist-taps" height="140"></canvas>
+      <div class="met-title">📊 Evolución Historias</div>
+      <canvas id="chart-historias" height="180"></canvas>
     </div>`;
   } else {
     html += `<div class="empty" style="padding:28px 0;">Sin registros de Historias aún.<br>¡Cargá el primero para ver el análisis!</div>`;
@@ -572,27 +564,22 @@ function initMetricaCharts() {
   const reels = DATA.reelMetrics;
   if (reels.length) {
     const labels = reels.map(r => r.fecha.slice(5).replace('-','/'));
-
-    const elV = document.getElementById('chart-reel-views');
-    if (elV) _charts.push(new Chart(elV, {
-      type:'bar',
-      data:{ labels, datasets:[{
-        label:'Views 24h', data:reels.map(r=>r.views_24h||0),
-        backgroundColor:'rgba(168,85,247,0.5)', borderColor:'#a855f7', borderWidth:1, borderRadius:4
-      }]},
-      options: chartOpts()
-    }));
-
-    const elR = document.getElementById('chart-reel-ret');
-    if (elR) _charts.push(new Chart(elR, {
-      type:'line',
-      data:{ labels, datasets:[
-        { label:'Ret. 3s 24h %', data:reels.map(r=>parseFloat(r.retencion_3s_24h)||0),
-          borderColor:'#c084fc', backgroundColor:'rgba(192,132,252,0.1)',
-          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#c084fc' },
-        { label:'Ret. 3s 6h %', data:reels.map(r=>parseFloat(r.retencion_3s_6h)||0),
-          borderColor:'rgba(168,85,247,0.4)', backgroundColor:'transparent',
-          tension:0.4, borderDash:[4,4], pointRadius:3 }
+    const el = document.getElementById('chart-reels');
+    if (el) _charts.push(new Chart(el, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label:'Views 24h',       data: reels.map(r=>r.views_24h||0),
+          borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.08)',
+          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#a855f7' },
+        { label:'Likes 24h',       data: reels.map(r=>r.likes_24h||0),
+          borderColor:'#f472b6', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#f472b6' },
+        { label:'Guardados 24h',   data: reels.map(r=>r.guardados_24h||0),
+          borderColor:'#a8e6cf', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf' },
+        { label:'Compartidos 24h', data: reels.map(r=>r.compartidos_24h||0),
+          borderColor:'#fb923c', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#fb923c' },
       ]},
       options: chartOpts()
     }));
@@ -601,25 +588,22 @@ function initMetricaCharts() {
   const hists = DATA.historiaMetrics;
   if (hists.length) {
     const labels = hists.map(h => h.fecha.slice(5).replace('-','/'));
-
-    const elA = document.getElementById('chart-hist-alcance');
-    if (elA) _charts.push(new Chart(elA, {
-      type:'bar',
-      data:{ labels, datasets:[{
-        label:'Alcance', data:hists.map(h=>h.alcance||0),
-        backgroundColor:'rgba(96,165,250,0.5)', borderColor:'#60a5fa', borderWidth:1, borderRadius:4
-      }]},
-      options: chartOpts()
-    }));
-
-    const elT = document.getElementById('chart-hist-taps');
-    if (elT) _charts.push(new Chart(elT, {
-      type:'bar',
-      data:{ labels, datasets:[
-        { label:'Taps adelante', data:hists.map(h=>h.taps_adelante||0),
-          backgroundColor:'rgba(168,230,207,0.5)', borderColor:'#a8e6cf', borderWidth:1, borderRadius:4 },
-        { label:'Abandonos', data:hists.map(h=>h.abandonos||0),
-          backgroundColor:'rgba(255,107,107,0.4)', borderColor:'#ff6b6b', borderWidth:1, borderRadius:4 }
+    const el = document.getElementById('chart-historias');
+    if (el) _charts.push(new Chart(el, {
+      type: 'line',
+      data: { labels, datasets: [
+        { label:'Alcance',       data: hists.map(h=>h.alcance||0),
+          borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.08)',
+          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#60a5fa' },
+        { label:'Agendas',       data: hists.map(h=>h.agendas||0),
+          borderColor:'#a855f7', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a855f7' },
+        { label:'Respuestas',    data: hists.map(h=>h.respuestas||0),
+          borderColor:'#a8e6cf', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#a8e6cf' },
+        { label:'Clics enlace',  data: hists.map(h=>h.clics_enlace||0),
+          borderColor:'#ffd93d', backgroundColor:'transparent',
+          tension:0.4, pointRadius:4, pointBackgroundColor:'#ffd93d' },
       ]},
       options: chartOpts()
     }));
