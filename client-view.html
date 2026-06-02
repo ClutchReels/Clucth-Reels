@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Clutch Reels · Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
@@ -144,6 +145,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;background-im
 .loader-msg{text-align:center;color:var(--muted);padding:80px 0;font-size:13px;}
 .error-msg{text-align:center;color:var(--danger);padding:60px 20px;font-size:13px;line-height:1.7;}
 .footer{text-align:center;margin-top:48px;font-size:10px;color:var(--muted);letter-spacing:.5px;}
+
+/* PORTAL MODAL */
+.pm-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+@media(min-width:600px){.pm-bg{align-items:center;}}
+.pm-box{background:var(--card);border:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:720px;max-height:88vh;overflow-y:auto;padding:24px 20px 32px;}
+@media(min-width:600px){.pm-box{border-radius:16px;margin:auto;}}
+.pm-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.pm-title{font-weight:700;font-size:16px;}
+.pm-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;padding:0;}
+.pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pm-field{display:flex;flex-direction:column;gap:5px;}
+.pm-field.full{grid-column:1/-1;}
+.pm-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+.pm-input{background:var(--elevated);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;font-family:inherit;outline:none;width:100%;}
+.pm-input:focus{border-color:var(--violet);}
+.pm-sep{grid-column:1/-1;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--violet);margin:8px 0 2px;padding-top:10px;border-top:1px solid var(--border);}
+.pm-save{grid-column:1/-1;background:linear-gradient(135deg,var(--deep),var(--violet));border:none;color:#fff;padding:14px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-top:8px;font-family:inherit;width:100%;}
+.pm-save:active{opacity:.85;}
 </style>
 </head>
 <body>
@@ -193,12 +212,14 @@ async function init() {
     return;
   }
   try {
-    const [cr, pr, dr, mr, rm] = await Promise.all([
+    const [cr, pr, dr, mr, rm, rml, hml] = await Promise.all([
       sb.from('clients').select('*').eq('id', cid).single(),
       sb.from('projects').select('*').eq('client_id', cid).neq('estado','cancelado').order('created_at',{ascending:false}),
       sb.from('deliverables').select('*').eq('client_id', cid).order('deadline',{ascending:true}),
       sb.from('metrics_history').select('*').eq('client_id', cid).order('periodo',{ascending:false}),
       sb.from('roadmap_items').select('*').eq('client_id', cid).order('orden'),
+      sb.from('reel_metrics').select('*').eq('client_id', cid).order('fecha',{ascending:true}),
+      sb.from('historia_metrics').select('*').eq('client_id', cid).order('fecha',{ascending:true}),
     ]);
     if (cr.error || !cr.data) { showError('No encontramos tu información.<br>Contactá a Clutch Reels.'); return; }
     DATA = {
@@ -207,6 +228,8 @@ async function init() {
       deliverables: dr.data || [],
       metrics: mr.data || [],
       roadmap: rm.data || [],
+      reelMetrics: rml.data || [],
+      historiaMetrics: hml.data || [],
     };
     renderShell();
     renderTab('workspace');
@@ -258,9 +281,9 @@ function renderTab(tab) {
   if (tabEl) tabEl.classList.add('active');
   const el = document.getElementById('tab-content');
   if (!el) return;
-  if (tab === 'workspace')    el.innerHTML = buildWorkspace();
-  else if (tab === 'metricas')    el.innerHTML = buildMetricas();
-  else if (tab === 'prospeccion') el.innerHTML = buildProspeccion();
+  if (tab === 'workspace')         el.innerHTML = buildWorkspace();
+  else if (tab === 'metricas')   { el.innerHTML = buildMetricas(); initMetricaCharts(); }
+  else if (tab === 'prospeccion')  el.innerHTML = buildProspeccion();
 }
 
 // ══════════════════════════════
@@ -340,93 +363,66 @@ function buildWorkspace() {
 // MÉTRICAS
 // ══════════════════════════════
 function buildMetricas() {
-  const { metrics, deliverables } = DATA;
-
-  // Conteo de formatos finalizados
-  const finalizados = deliverables.filter(d => d.estado === 'Finalizado');
-  const fmtCount = {};
-  finalizados.forEach(d => { fmtCount[d.formato] = (fmtCount[d.formato]||0)+1; });
-  const fmtSorted = Object.entries(fmtCount).sort((a,b)=>b[1]-a[1]);
-
-  // KPIs globales (último registro de métricas)
-  const ultimo = metrics[0] || {};
-  const totalViews = metrics.reduce((a,m)=>a+(parseInt(m.views)||0),0);
-  const avgRet = metrics.length ? Math.round(metrics.reduce((a,m)=>a+(parseFloat(m.retencion)||0),0)/metrics.length*10)/10 : 0;
-  const avgCTR = metrics.length ? Math.round(metrics.reduce((a,m)=>a+(parseFloat(m.ctr)||0),0)/metrics.length*10)/10 : 0;
-  const totalLeads = metrics.reduce((a,m)=>a+(parseInt(m.leads_generados)||0),0);
-
+  const { reelMetrics, historiaMetrics } = DATA;
   let html = '';
 
-  // KPIs
-  html += `<div class="section-label">Resumen general</div>
-  <div class="kpi-grid">
-    <div class="kpi-card"><div class="kpi-val">${totalViews>999?(totalViews/1000).toFixed(1)+'K':totalViews}</div><div class="kpi-label">Reproducciones</div></div>
-    <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Retención prom.</div></div>
-    <div class="kpi-card"><div class="kpi-val">${avgCTR}%</div><div class="kpi-label">CTR promedio</div></div>
-    <div class="kpi-card"><div class="kpi-val">${totalLeads}</div><div class="kpi-label">Leads generados</div></div>
+  // ── REELS ──
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="section-label" style="margin:0;">📱 Reels</div>
+    <button class="btn-aprobar" onclick="showPortalMetricaForm('reel')">➕ Cargar datos</button>
   </div>`;
 
-  // Formatos producidos
-  if (fmtSorted.length) {
-    html += `<div class="section-label">Contenido producido</div>
-    <div class="format-grid">
-      ${fmtSorted.slice(0,6).map(([fmt, n]) => `
-        <div class="format-card">
-          <div class="format-icon">${iF(fmt)}</div>
-          <div class="format-name">${fmt}</div>
-          <div class="format-count">${n}</div>
-        </div>`).join('')}
+  if (reelMetrics.length) {
+    const last = reelMetrics[reelMetrics.length-1];
+    const avgViews = Math.round(reelMetrics.reduce((a,r)=>a+(r.views_24h||0),0)/reelMetrics.length);
+    const avgRet   = (reelMetrics.reduce((a,r)=>a+(parseFloat(r.retencion_3s_24h)||0),0)/reelMetrics.length).toFixed(1);
+    const totLikes = reelMetrics.reduce((a,r)=>a+(r.likes_24h||0),0);
+    html += `<div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi-card"><div class="kpi-val">${(last.views_24h||0).toLocaleString()}</div><div class="kpi-label">Último · Views</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgViews.toLocaleString()}</div><div class="kpi-label">Views prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
+    </div>
+    <div class="met-section" style="padding:16px 20px;margin-bottom:12px;">
+      <div class="met-title">📊 Views 24h</div>
+      <canvas id="chart-reel-views" height="160"></canvas>
+    </div>
+    <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
+      <div class="met-title">🎯 Retención 3s %</div>
+      <canvas id="chart-reel-ret" height="140"></canvas>
     </div>`;
+  } else {
+    html += `<div class="empty" style="padding:28px 0;margin-bottom:20px;">Sin registros de Reels aún.<br>¡Cargá el primero para ver el análisis!</div>`;
   }
 
-  // Historial de métricas
-  if (!metrics.length) {
-    html += '<div class="empty">Todavía no hay métricas cargadas.<br>Tu equipo las actualiza cada mes.</div>';
-    return html;
+  // ── HISTORIAS ──
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div class="section-label" style="margin:0;">📖 Historias</div>
+    <button class="btn-aprobar" onclick="showPortalMetricaForm('historia')" style="border-color:rgba(96,165,250,.4);color:#60a5fa;">➕ Cargar datos</button>
+  </div>`;
+
+  if (historiaMetrics.length) {
+    const last = historiaMetrics[historiaMetrics.length-1];
+    const avgAlcance = Math.round(historiaMetrics.reduce((a,h)=>a+(h.alcance||0),0)/historiaMetrics.length);
+    const totClics   = historiaMetrics.reduce((a,h)=>a+(h.clics_enlace||0),0);
+    const avgAbandono = Math.round(historiaMetrics.reduce((a,h)=>a+(h.abandonos||0),0)/historiaMetrics.length);
+    html += `<div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi-card"><div class="kpi-val">${(last.alcance||0).toLocaleString()}</div><div class="kpi-label">Último · Alcance</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgAlcance.toLocaleString()}</div><div class="kpi-label">Alcance prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgAbandono}</div><div class="kpi-label">Abandono prom.</div></div>
+    </div>
+    <div class="met-section" style="padding:16px 20px;margin-bottom:12px;">
+      <div class="met-title">📊 Alcance</div>
+      <canvas id="chart-hist-alcance" height="160"></canvas>
+    </div>
+    <div class="met-section" style="padding:16px 20px;margin-bottom:24px;">
+      <div class="met-title">👁 Taps adelante vs Abandonos</div>
+      <canvas id="chart-hist-taps" height="140"></canvas>
+    </div>`;
+  } else {
+    html += `<div class="empty" style="padding:28px 0;">Sin registros de Historias aún.<br>¡Cargá el primero para ver el análisis!</div>`;
   }
-
-  const maxViews = Math.max(...metrics.map(m=>parseInt(m.views)||0), 1);
-
-  // Reels (si hay)
-  const reelsData = metrics; // usamos todos por ahora, se puede filtrar por tipo en el futuro
-
-  html += `<div class="section-label">Evolución mensual</div>
-  <div class="met-section">
-    <div class="met-title">📈 Rendimiento por período</div>
-    ${reelsData.map((m, i) => {
-      const prev = reelsData[i+1];
-      const views = parseInt(m.views)||0;
-      const pct = Math.round((views/maxViews)*100);
-      const delta = prev ? views - (parseInt(prev.views)||0) : null;
-      const deltaHtml = delta !== null
-        ? `<span class="${delta>=0?'delta-up':'delta-dn'}">${delta>=0?'▲':'▼'} ${Math.abs(delta).toLocaleString()}</span>`
-        : '';
-      return `<div class="met-row">
-        <span class="met-periodo">${fmtMes(m.periodo)}</span>
-        <div class="met-bar-wrap"><div class="met-bar"><div class="met-bar-fill" style="width:${pct}%;"></div></div></div>
-        <div class="met-stat">
-          <strong>${views.toLocaleString()} vistas</strong>
-          ${deltaHtml}
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
-
-  // Tabla detallada
-  html += `<div class="met-section">
-    <div class="met-title">🔍 Detalle de métricas</div>
-    ${metrics.map(m => `
-      <div class="met-row">
-        <span class="met-periodo">${fmtMes(m.periodo)}</span>
-        <div style="flex:1;display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
-          <span style="font-size:11px;color:var(--sub);">Retención: <strong style="color:var(--text);">${m.retencion||0}%</strong></span>
-          <span style="font-size:11px;color:var(--sub);">CTR: <strong style="color:var(--text);">${m.ctr||0}%</strong></span>
-          <span style="font-size:11px;color:var(--sub);">Leads: <strong style="color:var(--success);">${m.leads_generados||0}</strong></span>
-        </div>
-      </div>
-      ${m.notas ? `<div style="font-size:11px;color:var(--muted);padding:4px 0 8px;border-bottom:1px solid var(--border);">💬 ${m.notas}</div>` : ''}
-    `).join('')}
-  </div>`;
 
   return html;
 }
@@ -552,11 +548,179 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
+// ══════════════════════════════
+// CHARTS
+// ══════════════════════════════
+let _charts = [];
+
+function chartOpts() {
+  return {
+    responsive: true,
+    plugins: { legend: { labels: { color:'#b0b0b0', font:{size:11,family:'Inter'}, boxWidth:12, padding:16 } } },
+    scales: {
+      x: { ticks:{color:'#6a6a6a',font:{size:10,family:'Inter'}}, grid:{color:'rgba(255,255,255,0.04)'} },
+      y: { ticks:{color:'#6a6a6a',font:{size:10,family:'Inter'}}, grid:{color:'rgba(255,255,255,0.04)'},
+           beginAtZero:true }
+    }
+  };
+}
+
+function initMetricaCharts() {
+  _charts.forEach(c => c.destroy());
+  _charts = [];
+
+  const reels = DATA.reelMetrics;
+  if (reels.length) {
+    const labels = reels.map(r => r.fecha.slice(5).replace('-','/'));
+
+    const elV = document.getElementById('chart-reel-views');
+    if (elV) _charts.push(new Chart(elV, {
+      type:'bar',
+      data:{ labels, datasets:[{
+        label:'Views 24h', data:reels.map(r=>r.views_24h||0),
+        backgroundColor:'rgba(168,85,247,0.5)', borderColor:'#a855f7', borderWidth:1, borderRadius:4
+      }]},
+      options: chartOpts()
+    }));
+
+    const elR = document.getElementById('chart-reel-ret');
+    if (elR) _charts.push(new Chart(elR, {
+      type:'line',
+      data:{ labels, datasets:[
+        { label:'Ret. 3s 24h %', data:reels.map(r=>parseFloat(r.retencion_3s_24h)||0),
+          borderColor:'#c084fc', backgroundColor:'rgba(192,132,252,0.1)',
+          tension:0.4, fill:true, pointRadius:4, pointBackgroundColor:'#c084fc' },
+        { label:'Ret. 3s 6h %', data:reels.map(r=>parseFloat(r.retencion_3s_6h)||0),
+          borderColor:'rgba(168,85,247,0.4)', backgroundColor:'transparent',
+          tension:0.4, borderDash:[4,4], pointRadius:3 }
+      ]},
+      options: chartOpts()
+    }));
+  }
+
+  const hists = DATA.historiaMetrics;
+  if (hists.length) {
+    const labels = hists.map(h => h.fecha.slice(5).replace('-','/'));
+
+    const elA = document.getElementById('chart-hist-alcance');
+    if (elA) _charts.push(new Chart(elA, {
+      type:'bar',
+      data:{ labels, datasets:[{
+        label:'Alcance', data:hists.map(h=>h.alcance||0),
+        backgroundColor:'rgba(96,165,250,0.5)', borderColor:'#60a5fa', borderWidth:1, borderRadius:4
+      }]},
+      options: chartOpts()
+    }));
+
+    const elT = document.getElementById('chart-hist-taps');
+    if (elT) _charts.push(new Chart(elT, {
+      type:'bar',
+      data:{ labels, datasets:[
+        { label:'Taps adelante', data:hists.map(h=>h.taps_adelante||0),
+          backgroundColor:'rgba(168,230,207,0.5)', borderColor:'#a8e6cf', borderWidth:1, borderRadius:4 },
+        { label:'Abandonos', data:hists.map(h=>h.abandonos||0),
+          backgroundColor:'rgba(255,107,107,0.4)', borderColor:'#ff6b6b', borderWidth:1, borderRadius:4 }
+      ]},
+      options: chartOpts()
+    }));
+  }
+}
+
+// ══════════════════════════════
+// PORTAL MODAL (carga de datos)
+// ══════════════════════════════
+function showPortalMetricaForm(tipo) {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('pm-title').textContent = tipo==='reel' ? '📱 Nuevo Reel' : '📖 Nueva Historia';
+
+  let fields = '';
+  if (tipo === 'reel') {
+    fields = `
+      <div class="pm-field full"><label class="pm-label">Fecha</label><input name="fecha" type="date" value="${today}" class="pm-input" required></div>
+      <div class="pm-field full"><label class="pm-label">Link del Reel</label><input name="link" type="url" class="pm-input" placeholder="https://..."></div>
+      <div class="pm-field"><label class="pm-label">Tipo de CTA</label><input name="tipo_cta" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Calidad de perfiles</label><input name="calidad_perfiles" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Agendas</label><input name="agendas" type="number" value="0" class="pm-input"></div>
+      <div class="pm-sep">— 6 horas —</div>
+      <div class="pm-field"><label class="pm-label">Views 6h</label><input name="views_6h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Likes 6h</label><input name="likes_6h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Comentarios 6h</label><input name="comentarios_6h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Compartidos 6h</label><input name="compartidos_6h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Guardados 6h</label><input name="guardados_6h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Retención 3s 6h %</label><input name="retencion_3s_6h" type="number" step="0.1" value="0" class="pm-input"></div>
+      <div class="pm-sep">— 24 horas —</div>
+      <div class="pm-field"><label class="pm-label">Views 24h</label><input name="views_24h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Likes 24h</label><input name="likes_24h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Comentarios 24h</label><input name="comentarios_24h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Compartidos 24h</label><input name="compartidos_24h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Guardados 24h</label><input name="guardados_24h" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Retención 3s 24h %</label><input name="retencion_3s_24h" type="number" step="0.1" value="0" class="pm-input"></div>`;
+  } else {
+    fields = `
+      <div class="pm-field full"><label class="pm-label">Fecha</label><input name="fecha" type="date" value="${today}" class="pm-input" required></div>
+      <div class="pm-field"><label class="pm-label">Tipo de CTA</label><input name="tipo_cta" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Núm. de historias</label><input name="num_historias" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Visitas primera historia</label><input name="visitas_primera" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Visitas última historia</label><input name="visitas_ultima" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Alcance</label><input name="alcance" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Clics en enlace</label><input name="clics_enlace" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Taps adelante</label><input name="taps_adelante" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Taps atrás</label><input name="taps_atras" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Abandonos</label><input name="abandonos" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Respuestas</label><input name="respuestas" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Votos / Respuestas</label><input name="votos_respuestas" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Calidad del perfil</label><input name="calidad_perfil" type="number" value="0" class="pm-input"></div>
+      <div class="pm-field"><label class="pm-label">Agendas</label><input name="agendas" type="number" value="0" class="pm-input"></div>`;
+  }
+
+  document.getElementById('pm-body').innerHTML = `
+    <form class="pm-grid" onsubmit="submitPortalMetrica(event,'${tipo}')">
+      ${fields}
+      <button type="submit" class="pm-save">Guardar</button>
+    </form>`;
+  document.getElementById('pm-modal-bg').style.display = 'flex';
+}
+
+function closePortalModal() {
+  document.getElementById('pm-modal-bg').style.display = 'none';
+}
+
+async function submitPortalMetrica(e, tipo) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  f.client_id = cid;
+  const intFields = tipo==='reel'
+    ? ['agendas','calidad_perfiles','comentarios_6h','comentarios_24h','compartidos_6h','compartidos_24h','guardados_6h','guardados_24h','likes_6h','likes_24h','views_6h','views_24h']
+    : ['agendas','alcance','abandonos','clics_enlace','num_historias','respuestas','taps_adelante','taps_atras','visitas_primera','visitas_ultima','votos_respuestas','calidad_perfil'];
+  intFields.forEach(k=>{ if(f[k]!==undefined) f[k]=parseInt(f[k])||0; });
+  if (tipo==='reel') { f.retencion_3s_6h=parseFloat(f.retencion_3s_6h)||0; f.retencion_3s_24h=parseFloat(f.retencion_3s_24h)||0; }
+  const table = tipo==='reel' ? 'reel_metrics' : 'historia_metrics';
+  try {
+    const { data, error } = await sb.from(table).insert(f).select().single();
+    if (error) throw error;
+    if (tipo==='reel') { DATA.reelMetrics.push(data); DATA.reelMetrics.sort((a,b)=>a.fecha.localeCompare(b.fecha)); }
+    else { DATA.historiaMetrics.push(data); DATA.historiaMetrics.sort((a,b)=>a.fecha.localeCompare(b.fecha)); }
+    closePortalModal();
+    renderTab('metricas');
+    toast('✓ Datos guardados');
+  } catch(err) { toast('Error al guardar. Intentá de nuevo.'); }
+}
+
 function showError(msg) {
   document.getElementById('app').innerHTML = `<div style="padding:40px 24px;"><div class="error-msg">${msg}</div></div>`;
 }
 
 init();
 </script>
+
+<div id="pm-modal-bg" class="pm-bg" style="display:none;" onclick="if(event.target===this)closePortalModal()">
+  <div class="pm-box">
+    <div class="pm-header">
+      <div class="pm-title" id="pm-title"></div>
+      <button class="pm-close" onclick="closePortalModal()">✕</button>
+    </div>
+    <div id="pm-body"></div>
+  </div>
+</div>
 </body>
 </html>

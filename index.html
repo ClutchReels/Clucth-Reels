@@ -537,8 +537,21 @@ input[type=date]{color-scheme:dark;}
 <div id="rendimiento" class="panel">
   <div class="panel-header">
     <div><div class="eyebrow">métricas de impacto</div><div class="section-title" style="margin-bottom:0;">Rendimiento</div></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <select id="rend-fil-cliente" onchange="renderRendimiento()" style="background:var(--bg-elevated);border:1px solid var(--border-dim);border-radius:8px;color:var(--text-primary);padding:6px 10px;font-size:12px;font-family:inherit;"><option value="">Todos los clientes</option></select>
+      <button class="btn btn-primary" onclick="showMetricaForm()">➕ Nuevo registro</button>
+    </div>
   </div>
-  <div class="table-wrap"><table><thead><tr><th>CLIENTE</th><th>REPRODUCCIONES</th><th>RETENCIÓN %</th><th>CTR %</th><th>LEADS GENERADOS</th><th>EVALUACIÓN</th></tr></thead><tbody id="rend-tbody"></tbody></table></div>
+  <div class="sub-tabs" id="rend-tabs">
+    <div class="sub-tab active" onclick="switchRendTab(this,'rend-reels-panel')">📱 Reels</div>
+    <div class="sub-tab" onclick="switchRendTab(this,'rend-historias-panel')">📖 Historias</div>
+  </div>
+  <div class="sub-panel active" id="rend-reels-panel">
+    <div class="table-wrap"><table><thead><tr><th>FECHA</th><th>CLIENTE</th><th>VIEWS 24H</th><th>LIKES 24H</th><th>GUARDADOS 24H</th><th>RET. 3S 24H</th><th>COMPARTIDOS 24H</th><th></th></tr></thead><tbody id="rend-reels-tbody"></tbody></table></div>
+  </div>
+  <div class="sub-panel" id="rend-historias-panel">
+    <div class="table-wrap"><table><thead><tr><th>FECHA</th><th>CLIENTE</th><th>ALCANCE</th><th>VISITAS 1RA</th><th>TAPS ADELANTE</th><th>ABANDONOS</th><th>CLICS ENLACE</th><th></th></tr></thead><tbody id="rend-historias-tbody"></tbody></table></div>
+  </div>
 </div>
 
 <!-- ROADMAP -->
@@ -901,7 +914,7 @@ const sb = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ════════════════════════════════════
 // STATE
 // ════════════════════════════════════
-const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[], userProfiles:[], metricsHistory:[] };
+const S = { clients:[], leads:[], deliverables:[], teamMembers:[], expenses:[], invoices:[], transactions:[], roadmapItems:[], packages:[], serviceCatalog:[], projects:[], userProfiles:[], metricsHistory:[], reelMetrics:[], historiaMetrics:[] };
 
 const FORMATOS = ['Video','Reel','VSL','Anuncio','Foto','Carrusel','Copy','Ad','Landing','Email','Motion','Podcast'];
 const ICONS_F  = {Video:'🎬',Reel:'📱',VSL:'🎥',Anuncio:'📣',Foto:'📸',Carrusel:'🎨',Copy:'✍️',Ad:'🎯',Landing:'🌐',Email:'📧',Motion:'🎞',Podcast:'🎙'};
@@ -964,7 +977,7 @@ function fmtShort(d){ const dt=new Date(d+'T12:00:00'); return `${dt.getDate()} 
 // ════════════════════════════════════
 async function loadAll() {
   try {
-    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc,pj,up,mh] = await Promise.all([
+    const [cl,ld,dl,tm,ex,iv,tx,rm,pk,sc,pj,up,mh,rmet,hmet] = await Promise.all([
       sb.from('clients').select('*').order('created_at',{ascending:false}),
       sb.from('leads').select('*').order('created_at',{ascending:false}),
       sb.from('deliverables').select('*').order('deadline',{ascending:true}),
@@ -978,20 +991,24 @@ async function loadAll() {
       sb.from('projects').select('*').order('created_at',{ascending:false}),
       sb.from('user_profiles').select('*').order('nombre'),
       sb.from('metrics_history').select('*').order('periodo',{ascending:false}),
+      sb.from('reel_metrics').select('*').order('fecha',{ascending:false}),
+      sb.from('historia_metrics').select('*').order('fecha',{ascending:false}),
     ]);
-    S.clients        = cl.data  || [];
-    S.leads          = ld.data  || [];
-    S.deliverables   = dl.data  || [];
-    S.teamMembers    = tm.data  || [];
-    S.expenses       = ex.data  || [];
-    S.invoices       = iv.data  || [];
-    S.transactions   = tx.data  || [];
-    S.roadmapItems   = rm.data  || [];
-    S.packages       = pk.data  || [];
-    S.serviceCatalog = sc.data  || [];
-    S.projects       = pj.data  || [];
-    S.userProfiles   = up?.data || [];
-    S.metricsHistory = mh?.data || [];
+    S.clients         = cl.data   || [];
+    S.leads           = ld.data   || [];
+    S.deliverables    = dl.data   || [];
+    S.teamMembers     = tm.data   || [];
+    S.expenses        = ex.data   || [];
+    S.invoices        = iv.data   || [];
+    S.transactions    = tx.data   || [];
+    S.roadmapItems    = rm.data   || [];
+    S.packages        = pk.data   || [];
+    S.serviceCatalog  = sc.data   || [];
+    S.projects        = pj.data   || [];
+    S.userProfiles    = up?.data  || [];
+    S.metricsHistory  = mh?.data  || [];
+    S.reelMetrics     = rmet?.data || [];
+    S.historiaMetrics = hmet?.data || [];
   } catch(e) {
     toast('Error cargando datos: ' + e.message, 'error');
   }
@@ -3162,18 +3179,155 @@ function exportCSV(tipo) {
 // ════════════════════════════════════
 // RENDER RENDIMIENTO
 // ════════════════════════════════════
+let currentRendTab = 'reels';
+
+function switchRendTab(el, panelId) {
+  document.querySelectorAll('#rend-tabs .sub-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#rend-reels-panel,#rend-historias-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(panelId).classList.add('active');
+  currentRendTab = panelId.includes('reels') ? 'reels' : 'historias';
+}
+
 function renderRendimiento() {
-  document.getElementById('rend-tbody').innerHTML = S.clients.map(c=>{
-    const justifica = (c.views||0)>20000;
-    return `<tr>
-      <td style="color:var(--text-primary);font-weight:500;">${c.name}</td>
-      <td style="text-align:right;">${(c.views||0).toLocaleString()}</td>
-      <td style="text-align:right;">${c.retencion||0}%</td>
-      <td style="text-align:right;">${c.ctr||0}%</td>
-      <td style="text-align:right;">${c.leads_generados||0}</td>
-      <td><span class="badge ${justifica?'badge-ok':'badge-risk'}">${justifica?'✅ Justifica precio':'⚠️ Mejorar'}</span></td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="6" class="empty-state">Sin datos de rendimiento.</td></tr>';
+  const sel = document.getElementById('rend-fil-cliente');
+  if (sel && sel.options.length <= 1) S.clients.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.text=c.name;sel.appendChild(o);});
+  const filCli = sel?.value || '';
+
+  const reels = (filCli ? S.reelMetrics.filter(r=>r.client_id===filCli) : S.reelMetrics);
+  const hists  = (filCli ? S.historiaMetrics.filter(h=>h.client_id===filCli) : S.historiaMetrics);
+
+  document.getElementById('rend-reels-tbody').innerHTML = reels.map(r=>`
+    <tr>
+      <td>${r.fecha}</td>
+      <td style="color:var(--text-primary);font-weight:500;">${clientName(r.client_id)}</td>
+      <td style="text-align:right;">${(r.views_24h||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(r.likes_24h||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(r.guardados_24h||0).toLocaleString()}</td>
+      <td style="text-align:right;">${r.retencion_3s_24h||0}%</td>
+      <td style="text-align:right;">${(r.compartidos_24h||0).toLocaleString()}</td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn btn-sm" onclick="showMetricaForm('reel','${r.id}')">✏️</button>
+        <button class="btn btn-sm" onclick="deleteMetrica('reel','${r.id}')" style="color:var(--danger);border-color:var(--danger);">🗑</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty-state">Sin registros de Reels.</td></tr>';
+
+  document.getElementById('rend-historias-tbody').innerHTML = hists.map(h=>`
+    <tr>
+      <td>${h.fecha}</td>
+      <td style="color:var(--text-primary);font-weight:500;">${clientName(h.client_id)}</td>
+      <td style="text-align:right;">${(h.alcance||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(h.visitas_primera||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(h.taps_adelante||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(h.abandonos||0).toLocaleString()}</td>
+      <td style="text-align:right;">${(h.clics_enlace||0).toLocaleString()}</td>
+      <td style="display:flex;gap:4px;">
+        <button class="btn btn-sm" onclick="showMetricaForm('historia','${h.id}')">✏️</button>
+        <button class="btn btn-sm" onclick="deleteMetrica('historia','${h.id}')" style="color:var(--danger);border-color:var(--danger);">🗑</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty-state">Sin registros de Historias.</td></tr>';
+}
+
+function showMetricaForm(tipoArg, id) {
+  const tipo = tipoArg || (currentRendTab === 'reels' ? 'reel' : 'historia');
+  const d = id
+    ? (tipo==='reel' ? S.reelMetrics.find(r=>r.id===id) : S.historiaMetrics.find(h=>h.id===id))
+    : {};
+  if (id && !d) return;
+  const today = isoToday();
+  const cOpts = clienteOptsHtml(d.client_id);
+  const label = tipo==='reel' ? (id?'Editar Reel':'Nuevo Reel') : (id?'Editar Historia':'Nueva Historia');
+
+  let fields = '';
+  if (tipo === 'reel') {
+    fields = `
+      <div class="form-group"><label>Cliente *</label><select name="client_id" required>${cOpts}</select></div>
+      <div class="form-group"><label>Fecha *</label><input name="fecha" type="date" value="${d.fecha||today}" required></div>
+      <div class="form-group full"><label>Link</label><input name="link" value="${d.link||''}" placeholder="https://..."></div>
+      <div class="form-group"><label>Tipo de CTA</label><input name="tipo_cta" value="${d.tipo_cta||''}"></div>
+      <div class="form-group"><label>Calidad de perfiles</label><input name="calidad_perfiles" type="number" value="${d.calidad_perfiles||0}"></div>
+      <div class="form-group"><label>Agendas</label><input name="agendas" type="number" value="${d.agendas||0}"></div>
+      <div class="form-group" style="grid-column:1/-1;margin-top:8px;padding-top:10px;border-top:1px solid var(--border-dim);"><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--violet);">— 6 horas —</span></div>
+      <div class="form-group"><label>Views 6h</label><input name="views_6h" type="number" value="${d.views_6h||0}"></div>
+      <div class="form-group"><label>Likes 6h</label><input name="likes_6h" type="number" value="${d.likes_6h||0}"></div>
+      <div class="form-group"><label>Comentarios 6h</label><input name="comentarios_6h" type="number" value="${d.comentarios_6h||0}"></div>
+      <div class="form-group"><label>Compartidos 6h</label><input name="compartidos_6h" type="number" value="${d.compartidos_6h||0}"></div>
+      <div class="form-group"><label>Guardados 6h</label><input name="guardados_6h" type="number" value="${d.guardados_6h||0}"></div>
+      <div class="form-group"><label>Retención 3s 6h %</label><input name="retencion_3s_6h" type="number" step="0.1" value="${d.retencion_3s_6h||0}"></div>
+      <div class="form-group" style="grid-column:1/-1;margin-top:8px;padding-top:10px;border-top:1px solid var(--border-dim);"><span style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--violet);">— 24 horas —</span></div>
+      <div class="form-group"><label>Views 24h</label><input name="views_24h" type="number" value="${d.views_24h||0}"></div>
+      <div class="form-group"><label>Likes 24h</label><input name="likes_24h" type="number" value="${d.likes_24h||0}"></div>
+      <div class="form-group"><label>Comentarios 24h</label><input name="comentarios_24h" type="number" value="${d.comentarios_24h||0}"></div>
+      <div class="form-group"><label>Compartidos 24h</label><input name="compartidos_24h" type="number" value="${d.compartidos_24h||0}"></div>
+      <div class="form-group"><label>Guardados 24h</label><input name="guardados_24h" type="number" value="${d.guardados_24h||0}"></div>
+      <div class="form-group"><label>Retención 3s 24h %</label><input name="retencion_3s_24h" type="number" step="0.1" value="${d.retencion_3s_24h||0}"></div>`;
+  } else {
+    fields = `
+      <div class="form-group"><label>Cliente *</label><select name="client_id" required>${cOpts}</select></div>
+      <div class="form-group"><label>Fecha *</label><input name="fecha" type="date" value="${d.fecha||today}" required></div>
+      <div class="form-group"><label>Tipo de CTA</label><input name="tipo_cta" value="${d.tipo_cta||''}"></div>
+      <div class="form-group"><label>Núm. de historias</label><input name="num_historias" type="number" value="${d.num_historias||0}"></div>
+      <div class="form-group"><label>Visitas primera historia</label><input name="visitas_primera" type="number" value="${d.visitas_primera||0}"></div>
+      <div class="form-group"><label>Visitas última historia</label><input name="visitas_ultima" type="number" value="${d.visitas_ultima||0}"></div>
+      <div class="form-group"><label>Alcance</label><input name="alcance" type="number" value="${d.alcance||0}"></div>
+      <div class="form-group"><label>Clics en enlace</label><input name="clics_enlace" type="number" value="${d.clics_enlace||0}"></div>
+      <div class="form-group"><label>Taps adelante</label><input name="taps_adelante" type="number" value="${d.taps_adelante||0}"></div>
+      <div class="form-group"><label>Taps atrás</label><input name="taps_atras" type="number" value="${d.taps_atras||0}"></div>
+      <div class="form-group"><label>Abandonos</label><input name="abandonos" type="number" value="${d.abandonos||0}"></div>
+      <div class="form-group"><label>Respuestas</label><input name="respuestas" type="number" value="${d.respuestas||0}"></div>
+      <div class="form-group"><label>Votos / Respuestas</label><input name="votos_respuestas" type="number" value="${d.votos_respuestas||0}"></div>
+      <div class="form-group"><label>Calidad del perfil</label><input name="calidad_perfil" type="number" value="${d.calidad_perfil||0}"></div>
+      <div class="form-group"><label>Agendas</label><input name="agendas" type="number" value="${d.agendas||0}"></div>`;
+  }
+
+  document.getElementById('form-body').innerHTML = `
+    <div class="modal-title">${label}</div>
+    <form class="form-grid" onsubmit="submitMetrica(event,'${tipo}','${id||''}')">
+      ${fields}
+      <div class="form-actions full">
+        <button type="button" class="btn" onclick="closeModal('modal-form')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>`;
+  openModal('modal-form');
+}
+
+async function submitMetrica(e, tipo, id) {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(e.target));
+  const intFields = tipo==='reel'
+    ? ['agendas','calidad_perfiles','comentarios_6h','comentarios_24h','compartidos_6h','compartidos_24h','guardados_6h','guardados_24h','likes_6h','likes_24h','views_6h','views_24h']
+    : ['agendas','alcance','abandonos','clics_enlace','num_historias','respuestas','taps_adelante','taps_atras','visitas_primera','visitas_ultima','votos_respuestas','calidad_perfil'];
+  intFields.forEach(k=>{ if(f[k]!==undefined) f[k]=parseInt(f[k])||0; });
+  if (tipo==='reel') { f.retencion_3s_6h=parseFloat(f.retencion_3s_6h)||0; f.retencion_3s_24h=parseFloat(f.retencion_3s_24h)||0; }
+  const table = tipo==='reel' ? 'reel_metrics' : 'historia_metrics';
+  try {
+    if (id) {
+      await dbUpdate(table, id, f);
+      const arr = tipo==='reel' ? S.reelMetrics : S.historiaMetrics;
+      const i = arr.findIndex(r=>r.id===id);
+      if (i>-1) arr[i] = {...arr[i], ...f};
+      toast('Registro actualizado');
+    } else {
+      const r = await dbInsert(table, f);
+      (tipo==='reel' ? S.reelMetrics : S.historiaMetrics).unshift(r);
+      toast('Registro guardado');
+    }
+    closeModal('modal-form');
+    renderRendimiento();
+  } catch(err) { toast(err.message,'error'); }
+}
+
+async function deleteMetrica(tipo, id) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  const table = tipo==='reel' ? 'reel_metrics' : 'historia_metrics';
+  try {
+    await sb.from(table).delete().eq('id',id);
+    if (tipo==='reel') S.reelMetrics = S.reelMetrics.filter(r=>r.id!==id);
+    else S.historiaMetrics = S.historiaMetrics.filter(h=>h.id!==id);
+    renderRendimiento();
+    toast('Registro eliminado');
+  } catch(err) { toast(err.message,'error'); }
 }
 
 // ════════════════════════════════════
