@@ -382,81 +382,76 @@ function switchMetTab(tipo) {
 
 function buildMetricas() {
   const { reelMetrics, historiaMetrics } = DATA;
-
   const tabHist = activeMetTab === 'historia';
-  let html = `<div class="met-tabs">
-    <div class="met-tab ${tabHist?'active':''}" onclick="switchMetTab('historia')">📖 Historias</div>
-    <div class="met-tab ${!tabHist?'active':''}" onclick="switchMetTab('reels')">📱 Reels</div>
+  const data    = tabHist ? historiaMetrics : reelMetrics;
+
+  // Sub-tabs + botón en la misma fila
+  let html = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <div class="met-tabs" style="flex:1;margin:0;">
+      <div class="met-tab ${tabHist?'active':''}" onclick="switchMetTab('historia')">📖 Historias</div>
+      <div class="met-tab ${!tabHist?'active':''}" onclick="switchMetTab('reels')">📱 Reels</div>
+    </div>
+    <button class="btn-aprobar" onclick="showPortalMetricaForm('${tabHist?'historia':'reel'}')"
+      style="${tabHist?'border-color:rgba(96,165,250,.4);color:#60a5fa;':''}">➕ Cargar</button>
   </div>`;
 
-  if (tabHist) {
-    html += `<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-      <button class="btn-aprobar" onclick="showPortalMetricaForm('historia')" style="border-color:rgba(96,165,250,.4);color:#60a5fa;">➕ Cargar datos</button>
-    </div>`;
-    if (historiaMetrics.length) {
-      const last = historiaMetrics[historiaMetrics.length-1];
-      const avgAlcance = Math.round(historiaMetrics.reduce((a,h)=>a+(h.alcance||0),0)/historiaMetrics.length);
-      const totClics   = historiaMetrics.reduce((a,h)=>a+(h.clics_enlace||0),0);
-      const totAgendas = historiaMetrics.reduce((a,h)=>a+(h.agendas||0),0);
-      html += `<div class="kpi-grid" style="margin-bottom:16px;">
-        <div class="kpi-card"><div class="kpi-val">${(last.alcance||0).toLocaleString()}</div><div class="kpi-label">Último · Alcance</div></div>
-        <div class="kpi-card"><div class="kpi-val">${avgAlcance.toLocaleString()}</div><div class="kpi-label">Alcance prom.</div></div>
-        <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
-        <div class="kpi-card"><div class="kpi-val">${totAgendas}</div><div class="kpi-label">Agendas totales</div></div>
-      </div>`;
-    }
-    html += `<div class="met-section" style="padding:16px 20px;margin-bottom:20px;">
-      <canvas id="chart-historias" height="300"></canvas>
-    </div>`;
-    if (historiaMetrics.length) {
-      html += `<div class="section-label">Historial de Historias</div>
-      <div class="met-section" style="padding:0 4px;overflow-x:auto;">
-        <table class="hist-table">
-          <thead><tr><th>Fecha</th><th>Alcance</th><th>Agendas</th><th>Respuestas</th><th>Clics enlace</th></tr></thead>
-          <tbody>${[...historiaMetrics].reverse().map(h=>`<tr>
-            <td>${h.fecha}</td><td>${(h.alcance||0).toLocaleString()}</td>
-            <td>${h.agendas||0}</td><td>${h.respuestas||0}</td><td>${h.clics_enlace||0}</td>
-          </tr>`).join('')}</tbody>
-        </table>
-      </div>`;
-    } else {
-      html += `<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px 0;">Cargá el primer registro para ver los datos.</div>`;
-    }
+  // Gráfico primero — ancho completo, altura dinámica
+  const chartId = tabHist ? 'chart-historias' : 'chart-reels';
+  html += `<div class="met-section" style="padding:12px 8px;margin-bottom:20px;">
+    <div style="position:relative;height:clamp(220px,42vh,380px);">
+      <canvas id="${chartId}"></canvas>
+    </div>
+  </div>`;
 
+  if (!data.length) {
+    html += `<div style="text-align:center;color:var(--muted);font-size:12px;padding:8px 0 20px;">Cargá el primer registro para ver los datos.</div>`;
+    return html;
+  }
+
+  // KPIs debajo del gráfico
+  if (tabHist) {
+    const last = data[data.length-1];
+    const avgAlcance = Math.round(data.reduce((a,h)=>a+(h.alcance||0),0)/data.length);
+    const totClics   = data.reduce((a,h)=>a+(h.clics_enlace||0),0);
+    const totAgendas = data.reduce((a,h)=>a+(h.agendas||0),0);
+    html += `<div class="kpi-grid" style="margin-bottom:20px;">
+      <div class="kpi-card"><div class="kpi-val">${(last.alcance||0).toLocaleString()}</div><div class="kpi-label">Último · Alcance</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgAlcance.toLocaleString()}</div><div class="kpi-label">Alcance prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totClics}</div><div class="kpi-label">Clics enlace</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totAgendas}</div><div class="kpi-label">Agendas totales</div></div>
+    </div>
+    <div class="section-label">Historial de Historias</div>
+    <div class="met-section" style="padding:0 4px;overflow-x:auto;">
+      <table class="hist-table">
+        <thead><tr><th>Fecha</th><th>Alcance</th><th>Agendas</th><th>Respuestas</th><th>Clics enlace</th></tr></thead>
+        <tbody>${[...data].reverse().map(h=>`<tr>
+          <td>${h.fecha}</td><td>${(h.alcance||0).toLocaleString()}</td>
+          <td>${h.agendas||0}</td><td>${h.respuestas||0}</td><td>${h.clics_enlace||0}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
   } else {
-    html += `<div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-      <button class="btn-aprobar" onclick="showPortalMetricaForm('reel')">➕ Cargar datos</button>
+    const last = data[data.length-1];
+    const avgViews = Math.round(data.reduce((a,r)=>a+(r.views_24h||0),0)/data.length);
+    const avgRet   = (data.reduce((a,r)=>a+(parseFloat(r.retencion_3s_24h)||0),0)/data.length).toFixed(1);
+    const totLikes = data.reduce((a,r)=>a+(r.likes_24h||0),0);
+    html += `<div class="kpi-grid" style="margin-bottom:20px;">
+      <div class="kpi-card"><div class="kpi-val">${(last.views_24h||0).toLocaleString()}</div><div class="kpi-label">Último · Views</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgViews.toLocaleString()}</div><div class="kpi-label">Views prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
+      <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
+    </div>
+    <div class="section-label">Historial de Reels</div>
+    <div class="met-section" style="padding:0 4px;overflow-x:auto;">
+      <table class="hist-table">
+        <thead><tr><th>Fecha</th><th>Views 24h</th><th>Likes 24h</th><th>Guardados 24h</th><th>Compartidos 24h</th><th>Ret. 3s %</th></tr></thead>
+        <tbody>${[...data].reverse().map(r=>`<tr>
+          <td>${r.fecha}</td><td>${(r.views_24h||0).toLocaleString()}</td>
+          <td>${(r.likes_24h||0).toLocaleString()}</td><td>${(r.guardados_24h||0).toLocaleString()}</td>
+          <td>${(r.compartidos_24h||0).toLocaleString()}</td><td>${r.retencion_3s_24h||0}%</td>
+        </tr>`).join('')}</tbody>
+      </table>
     </div>`;
-    if (reelMetrics.length) {
-      const last = reelMetrics[reelMetrics.length-1];
-      const avgViews = Math.round(reelMetrics.reduce((a,r)=>a+(r.views_24h||0),0)/reelMetrics.length);
-      const avgRet   = (reelMetrics.reduce((a,r)=>a+(parseFloat(r.retencion_3s_24h)||0),0)/reelMetrics.length).toFixed(1);
-      const totLikes = reelMetrics.reduce((a,r)=>a+(r.likes_24h||0),0);
-      html += `<div class="kpi-grid" style="margin-bottom:16px;">
-        <div class="kpi-card"><div class="kpi-val">${(last.views_24h||0).toLocaleString()}</div><div class="kpi-label">Último · Views</div></div>
-        <div class="kpi-card"><div class="kpi-val">${avgViews.toLocaleString()}</div><div class="kpi-label">Views prom.</div></div>
-        <div class="kpi-card"><div class="kpi-val">${avgRet}%</div><div class="kpi-label">Ret. 3s prom.</div></div>
-        <div class="kpi-card"><div class="kpi-val">${totLikes.toLocaleString()}</div><div class="kpi-label">Likes totales</div></div>
-      </div>`;
-    }
-    html += `<div class="met-section" style="padding:16px 20px;margin-bottom:20px;">
-      <canvas id="chart-reels" height="300"></canvas>
-    </div>`;
-    if (reelMetrics.length) {
-      html += `<div class="section-label">Historial de Reels</div>
-      <div class="met-section" style="padding:0 4px;overflow-x:auto;">
-        <table class="hist-table">
-          <thead><tr><th>Fecha</th><th>Views 24h</th><th>Likes 24h</th><th>Guardados 24h</th><th>Compartidos 24h</th><th>Ret. 3s %</th></tr></thead>
-          <tbody>${[...reelMetrics].reverse().map(r=>`<tr>
-            <td>${r.fecha}</td><td>${(r.views_24h||0).toLocaleString()}</td>
-            <td>${(r.likes_24h||0).toLocaleString()}</td><td>${(r.guardados_24h||0).toLocaleString()}</td>
-            <td>${(r.compartidos_24h||0).toLocaleString()}</td><td>${r.retencion_3s_24h||0}%</td>
-          </tr>`).join('')}</tbody>
-        </table>
-      </div>`;
-    } else {
-      html += `<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px 0;">Cargá el primer registro para ver los datos.</div>`;
-    }
   }
 
   return html;
@@ -591,6 +586,7 @@ let _charts = [];
 function chartOpts() {
   return {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         labels: {
